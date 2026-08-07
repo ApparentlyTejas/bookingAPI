@@ -1,18 +1,20 @@
 """
-ACTIVE: step 4 fix attempt 1 — SELECT ... FOR UPDATE row lock (see CLAUDE.md
+ACTIVE: step 5 fix attempt 2 — Postgres EXCLUDE constraint (see CLAUDE.md
 build plan).
 
-create_booking() locks the resource row before checking for an overlap, so
-only one transaction at a time can be mid-overlap-check for a given
-resource_id — concurrent requests for the same resource block on the lock
-and see each other's commits. This closes the race from step 2/3, but it
-serializes ALL bookings on that resource, not just overlapping ones: two
-requests for non-overlapping timeslots on the same resource still queue up
-behind each other. See CLAUDE.md step 5 for the alternative (exclusion
-constraint) that only serializes actual overlaps.
+create_booking() no longer locks the resource row app-side. The overlap
+SELECT below is now just an optimistic fast-path (cheap, saves a round trip
+for the common non-racing case) — it is NOT what prevents duplicate
+bookings. The actual guarantee is the `bookings_no_overlap` EXCLUDE
+constraint added in db/002_add_exclusion_constraint.sql: if two concurrent
+requests both pass the SELECT and both INSERT, Postgres rejects the second
+INSERT at commit time, and we catch that as IntegrityError -> 409. Unlike
+step 4's FOR UPDATE lock, this only blocks genuinely overlapping bookings —
+non-overlapping requests on the same resource can commit concurrently.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -32,12 +34,7 @@ def create_booking(
     if payload.end_time <= payload.start_time:
         raise HTTPException(status_code=422, detail="end_time must be after start_time")
 
-    resource = (
-        db.query(Resource)
-        .filter(Resource.id == payload.resource_id)
-        .with_for_update()
-        .first()
-    )
+    resource = db.query(Resource).filter(Resource.id == payload.resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
 
@@ -60,6 +57,10 @@ def create_booking(
         end_time=payload.end_time,
     )
     db.add(booking)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Resource already booked for this time")
     db.refresh(booking)
     return booking

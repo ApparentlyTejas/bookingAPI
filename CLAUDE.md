@@ -82,3 +82,18 @@ note the date + any surprises under each one.
       semantics — `FOR UPDATE` holds the row lock until commit, so any two
       transactions touching the same `resource_id` block each other
       regardless of time range — without needing a clean benchmark.)
+- [x] Step 5 (2026-08-07): Fix attempt 2 — Postgres `EXCLUDE USING gist`
+      constraint (`resource_id` WITH =, `tstzrange(start_time, end_time)`
+      WITH &&) added in `db/002_add_exclusion_constraint.sql`, requires
+      `btree_gist` extension for the equality term. Dropped the app-level
+      `FOR UPDATE` lock in `app/routers/bookings.py`; the overlap SELECT is
+      now just an optimistic fast-path, and the actual guarantee is the
+      constraint — a second concurrent INSERT that slips past the SELECT
+      fails with `IntegrityError`, caught and returned as 409. Re-ran the
+      same racing-same-slot load test: 4448 requests, 1 succeeded, 4447
+      correctly got 409, 0 overlapping pairs — same correctness as step 4,
+      throughput slightly higher (452 req/s vs 420 req/s), likely because
+      Postgres rejects the losing INSERT at commit-time instead of making
+      requests queue on a row lock. Surprise: the build plan's own text said
+      `tsrange`, but the columns are `TIMESTAMPTZ` — needed `tstzrange`
+      instead, `tsrange` would have failed to compile against them.

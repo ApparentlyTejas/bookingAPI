@@ -17,6 +17,7 @@ Then apply the schema manually (not auto-run — see CLAUDE.md conventions):
 
 ```bash
 docker compose exec db psql -U app -d bookingapi -f /db/001_schema.sql
+docker compose exec db psql -U app -d bookingapi -f /db/002_add_exclusion_constraint.sql
 ```
 
 Check it's up:
