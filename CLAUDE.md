@@ -67,3 +67,18 @@ note the date + any surprises under each one.
       staggered each user's first request enough to avoid overlap) — had to
       pre-fetch a single token and pass it via env var to get true
       simultaneous requests.
+- [x] Step 4 (2026-08-07): Fix attempt 1 — `SELECT ... FOR UPDATE` on the
+      resource row before the overlap check, active in
+      `app/routers/bookings.py`. Re-ran the same load test (30 users, same
+      resource+slot, 10s): 4128 requests, 4127 got `409 Conflict`, 1
+      succeeded. Verification query returned 0 overlapping pairs (down from
+      6). Confirmed the documented tradeoff: the lock is on the resource
+      row, not the timeslot, so it serializes every booking attempt on that
+      resource — including non-overlapping ones — not just conflicting
+      requests. (Tried to demonstrate this with a small concurrent,
+      non-overlapping-timeslot benchmark; inconclusive at n=20 because
+      Python thread/HTTP overhead per request, ~80-100ms, swamped the
+      actual lock-wait time. The serialization is provable from the SQL
+      semantics — `FOR UPDATE` holds the row lock until commit, so any two
+      transactions touching the same `resource_id` block each other
+      regardless of time range — without needing a clean benchmark.)
