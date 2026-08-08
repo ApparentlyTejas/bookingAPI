@@ -7,30 +7,31 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='5' fill='%234f46e5'/%3E%3Cpath d='M8 6v3M16 6v3M4 10h16M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E" />
 <style>
   :root {
-    --bg-1: #eef1fb;
-    --bg-2: #f7f8fc;
+    --bg: #faf8f4;
     --card: #ffffff;
-    --border: #e6e8f0;
-    --text: #14151f;
-    --muted: #6b7080;
-    --faint: #9ca0b0;
-    --accent: #4f46e5;
-    --accent-dark: #4338ca;
-    --accent-soft: #eef0ff;
-    --free: #edfdf5;
+    --border: #e7e2d6;
+    --text: #17160f;
+    --muted: #6f6a5c;
+    --faint: #a29c8a;
+    --ink: #17160f;
+    --ink-2: #322f24;
+    --accent: #b45309;
+    --accent-dark: #92400e;
+    --accent-soft: #fdf0e1;
+    --free: #eefaf1;
     --free-border: #34d399;
-    --free-text: #067a55;
-    --booked: #fef2f2;
-    --booked-border: #fca5a5;
-    --error-bg: #fef2f2;
-    --error-border: #fecaca;
-    --error: #dc2626;
-    --ok-bg: #ecfdf5;
-    --ok-border: #a7f3d0;
-    --ok: #067a55;
-    --now-line: #ef4444;
-    --shadow-card: 0 1px 2px rgba(20, 21, 31, 0.04), 0 16px 32px -12px rgba(20, 21, 31, 0.14);
-    --shadow-btn: 0 1px 2px rgba(79, 70, 229, 0.25), 0 6px 16px -4px rgba(79, 70, 229, 0.35);
+    --free-text: #0f7a4e;
+    --booked: #fbeeec;
+    --booked-border: #e5a29a;
+    --error-bg: #fbeeec;
+    --error-border: #e5a29a;
+    --error: #b3261e;
+    --ok-bg: #eefaf1;
+    --ok-border: #a3e4bc;
+    --ok: #0f7a4e;
+    --now-line: #b3261e;
+    --shadow-card: 0 1px 2px rgba(23, 22, 15, 0.05), 0 16px 32px -14px rgba(23, 22, 15, 0.18);
+    --shadow-btn: 0 1px 2px rgba(23, 22, 15, 0.15), 0 6px 14px -4px rgba(23, 22, 15, 0.28);
     --row-h: 46px;
   }
   * { box-sizing: border-box; }
@@ -39,31 +40,13 @@
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
-    background: var(--bg-2);
+    background:
+      radial-gradient(circle, rgba(23,22,15,0.07) 1px, transparent 1px) 0 0 / 22px 22px,
+      var(--bg);
     color: var(--text);
     min-height: 100vh;
     position: relative;
     overflow-x: hidden;
-  }
-
-  /* ambient background blobs */
-  .bg-blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-  .bg-blobs span {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(70px);
-    opacity: 0.35;
-    animation: drift 24s ease-in-out infinite alternate;
-  }
-  .bg-blobs span:nth-child(1) { width: 480px; height: 480px; top: -180px; left: -120px; background: #a5b4fc; }
-  .bg-blobs span:nth-child(2) { width: 420px; height: 420px; top: -80px; right: -140px; background: #c7d2fe; animation-delay: -6s; }
-  .bg-blobs span:nth-child(3) { width: 380px; height: 380px; bottom: -200px; left: 30%; background: #ddd6fe; animation-delay: -12s; }
-  @keyframes drift {
-    from { transform: translate(0, 0) scale(1); }
-    to { transform: translate(30px, 40px) scale(1.08); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .bg-blobs span { animation: none; }
   }
 
   header {
@@ -83,8 +66,8 @@
   .brand-mark {
     width: 30px;
     height: 30px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    border-radius: 8px;
+    background: var(--ink);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -168,23 +151,23 @@
     font-size: 0.9rem;
     font-weight: 600;
     font-family: inherit;
-    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    background: var(--ink);
     color: white;
     box-shadow: var(--shadow-btn);
-    transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease, background 0.15s ease;
     position: relative;
   }
-  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(79,70,229,.3), 0 10px 20px -4px rgba(79,70,229,.4); }
+  button:hover:not(:disabled) { transform: translateY(-1px); background: var(--ink-2); box-shadow: 0 2px 6px rgba(23,22,15,.2), 0 10px 18px -4px rgba(23,22,15,.3); }
   button:active:not(:disabled) { transform: translateY(0); }
   button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
   button.block { width: 100%; }
   button.secondary {
     background: #fff;
-    color: var(--accent);
+    color: var(--ink);
     border: 1.5px solid var(--border);
     box-shadow: none;
   }
-  button.secondary:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); box-shadow: none; }
+  button.secondary:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); background: var(--accent-soft); color: var(--accent-dark); box-shadow: none; }
   button.is-loading { color: transparent !important; pointer-events: none; }
   button.is-loading::after {
     content: "";
@@ -196,7 +179,7 @@
     border-radius: 50%;
     animation: spin .6s linear infinite;
   }
-  button.secondary.is-loading::after { border-color: rgba(79,70,229,.25); border-top-color: var(--accent); }
+  button.secondary.is-loading::after { border-color: rgba(180,83,9,.25); border-top-color: var(--accent); }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .icon-btn {
@@ -279,7 +262,7 @@
     overflow: hidden;
   }
   .auth-brand-panel {
-    background: linear-gradient(160deg, var(--accent) 0%, var(--accent-dark) 55%, #2d2a80 100%);
+    background: linear-gradient(160deg, var(--ink-2) 0%, var(--ink) 65%, #000 100%);
     color: white;
     padding: 2.5rem;
     display: flex;
@@ -394,18 +377,20 @@
     color: var(--text);
   }
   .tl-status { flex: 1; font-size: 0.82rem; font-weight: 600; color: var(--free-text); }
-  .tl-row.booked .tl-status { color: #b91c1c; }
+  .tl-row.booked .tl-status { color: var(--error); }
   .tl-row.past .tl-status { color: var(--faint); }
   .tl-action {
+    display: inline-flex;
+    align-items: center;
     font-size: 0.78rem;
     font-weight: 650;
-    color: var(--accent);
+    color: var(--accent-dark);
     opacity: 0;
     transition: opacity 0.12s ease;
   }
   .tl-row:hover:not(:disabled) .tl-action { opacity: 1; }
   .tl-row.booked { background: var(--booked); cursor: default; }
-  .tl-row.booked .tl-action { opacity: 1; font-size: 0.95rem; }
+  .tl-row.booked .tl-action { opacity: 1; color: var(--error); }
   .tl-row.past { background: #f2f2f5; cursor: default; }
   .tl-row.past .tl-time { color: var(--faint); }
   .tl-row.past .tl-action { opacity: 1; color: var(--faint); }
@@ -493,7 +478,7 @@
   .toast.show { opacity: 1; transform: translateX(0); }
   .toast-ok { border-left-color: var(--ok); }
   .toast-error { border-left-color: var(--error); }
-  .toast-icon { flex-shrink: 0; font-size: 0.95rem; }
+  .toast-icon { flex-shrink: 0; display: flex; align-items: center; margin-top: 1px; }
   .toast-ok .toast-icon { color: var(--ok); }
   .toast-error .toast-icon { color: var(--error); }
 
@@ -505,8 +490,6 @@
 </style>
 </head>
 <body>
-
-<div class="bg-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
 
 <header>
   <div class="brand">
@@ -529,7 +512,10 @@
 
   <section id="authView" class="card auth-shell">
     <div class="auth-brand-panel">
-      <span class="auth-badge">⚡ Concurrency-safe by design</span>
+      <span class="auth-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 3.8 8.5 9 10 5.2-1.5 9-5 9-10V6z"/></svg>
+        Concurrency-safe by design
+      </span>
       <h2>Book shared resources without double-booking. Ever.</h2>
       <p>Backed by a Postgres exclusion constraint, not app-level guesswork — two people can never win the same slot.</p>
       <ul class="auth-features">
@@ -613,7 +599,10 @@ function showToast(message, kind = "ok", timeout = 4500) {
   el.className = `toast toast-${kind}`;
   const icon = document.createElement("span");
   icon.className = "toast-icon";
-  icon.textContent = kind === "error" ? "⚠" : "✓";
+  icon.innerHTML =
+    kind === "error"
+      ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.86 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/></svg>'
+      : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   const msg = document.createElement("span");
   msg.textContent = message;
   el.appendChild(icon);
@@ -860,7 +849,11 @@ async function loadCalendar(justBookedHour) {
 
     const action = document.createElement("span");
     action.className = "tl-action";
-    action.textContent = isBooked ? "🔒" : isPast ? "—" : "+ Book";
+    if (isBooked) {
+      action.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+    } else {
+      action.textContent = isPast ? "—" : "+ Book";
+    }
 
     row.appendChild(time);
     row.appendChild(status);

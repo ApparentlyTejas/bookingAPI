@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
@@ -15,8 +15,8 @@ app.mount("/ui", StaticFiles(directory="app/static", html=True), name="ui")
 
 
 @app.get("/", include_in_schema=False)
-def root():
-    return RedirectResponse(url="/ui/")
+def home():
+    return FileResponse("app/static/home.html")
 
 
 @app.get("/health")

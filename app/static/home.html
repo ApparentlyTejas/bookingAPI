@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Booking API — a concurrency-safe resource booking API</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='5' fill='%2317160f'/%3E%3Cpath d='M8 6v3M16 6v3M4 10h16M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #faf8f4;
+    --card: #ffffff;
+    --border: #e7e2d6;
+    --text: #17160f;
+    --muted: #6f6a5c;
+    --faint: #a29c8a;
+    --ink: #17160f;
+    --ink-2: #322f24;
+    --accent: #b45309;
+    --accent-dark: #92400e;
+    --accent-soft: #fdf0e1;
+    --ok: #0f7a4e;
+    --ok-bg: #eefaf1;
+    --error: #b3261e;
+    --error-bg: #fbeeec;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --shadow-card: 0 1px 2px rgba(23, 22, 15, 0.05), 0 16px 32px -14px rgba(23, 22, 15, 0.18);
+    --shadow-btn: 0 1px 2px rgba(23, 22, 15, 0.15), 0 6px 14px -4px rgba(23, 22, 15, 0.28);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(circle, rgba(23,22,15,0.07) 1px, transparent 1px) 0 0 / 22px 22px,
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  a { color: inherit; }
+
+  header {
+    padding: 1rem 1.5rem;
+    background: rgba(250, 248, 244, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-btn);
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 16px; height: 16px; }
+  .brand-name { font-size: 1.05rem; font-weight: 650; letter-spacing: -0.01em; }
+  header nav { display: flex; align-items: center; gap: 1.25rem; }
+  header nav a.textlink { font-size: 0.85rem; font-weight: 600; color: var(--muted); text-decoration: none; }
+  header nav a.textlink:hover { color: var(--text); }
+
+  button, a.btn {
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    padding: 0.65rem 1.15rem;
+    font-size: 0.9rem;
+    font-weight: 650;
+    font-family: inherit;
+    background: var(--ink);
+    color: white;
+    box-shadow: var(--shadow-btn);
+    transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+  a.btn:hover, button:hover { transform: translateY(-1px); background: var(--ink-2); box-shadow: 0 2px 6px rgba(23,22,15,.2), 0 10px 18px -4px rgba(23,22,15,.3); }
+  a.btn.secondary {
+    background: #fff;
+    color: var(--ink);
+    border: 1.5px solid var(--border);
+    box-shadow: none;
+  }
+  a.btn.secondary:hover { border-color: var(--accent); background: var(--accent-soft); box-shadow: none; }
+
+  main { max-width: 1040px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* ---- Hero ---- */
+  .hero { padding: 5rem 0 4rem; text-align: center; }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    border: 1px solid #f3d9b8;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 1.5rem;
+  }
+  h1.headline {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 auto 1.1rem;
+    max-width: 18ch;
+  }
+  .headline em { font-style: italic; color: var(--accent-dark); }
+  .subhead {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 46ch;
+    margin: 0 auto 2rem;
+  }
+  .hero-ctas { display: flex; gap: 0.85rem; justify-content: center; flex-wrap: wrap; }
+
+  /* ---- Sections ---- */
+  section.block { padding: 3.25rem 0; border-top: 1px solid var(--border); }
+  .block-head { max-width: 56ch; margin: 0 auto 2.25rem; text-align: center; }
+  .block-eyebrow { font-size: 0.78rem; font-weight: 700; color: var(--accent-dark); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 0.5rem; }
+  .block-head h2 { font-size: 1.6rem; letter-spacing: -0.01em; margin: 0 0 0.6rem; }
+  .block-head p { color: var(--muted); font-size: 0.95rem; line-height: 1.6; margin: 0; }
+
+  /* ---- Race diagram ---- */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 760px) { .compare { grid-template-columns: 1fr; } }
+  .panel {
+    min-width: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-card);
+  }
+  .panel-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.95rem; margin: 0 0 1.1rem; }
+  .panel-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .panel-dot.bad { background: var(--error); }
+  .panel-dot.good { background: var(--ok); }
+
+  .race-lane { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.65rem; }
+  .race-label { width: 62px; flex-shrink: 0; font-size: 0.72rem; font-weight: 700; color: var(--muted); font-family: var(--mono); }
+  .race-track { position: relative; flex: 1; min-width: 0; height: 26px; background: #f4f1ea; border-radius: 6px; overflow: hidden; }
+  .race-seg {
+    position: absolute; top: 2px; height: 22px;
+    border-radius: 5px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    font-family: var(--mono);
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .race-seg.check { background: #c98a3f; }
+  @media (max-width: 480px) {
+    .race-label { width: 46px; font-size: 0.64rem; }
+    .race-seg { font-size: 0.58rem; }
+  }
+  .race-seg.insert { background: var(--error); }
+  .race-caption { font-size: 0.82rem; color: var(--muted); line-height: 1.55; margin: 1rem 0 0; }
+  .race-caption strong { color: var(--text); }
+
+  .code-block {
+    background: var(--ink);
+    color: #e9e4d8;
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.65;
+    overflow-x: auto;
+    margin: 0;
+  }
+  .code-block .kw { color: #f3b57a; }
+  .code-block .str { color: #9fd9a8; }
+
+  /* ---- Stats ---- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+  @media (max-width: 700px) { .stats { grid-template-columns: 1fr; } }
+  .stat {
+    min-width: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-card);
+    text-align: center;
+  }
+  .stat .num { font-family: var(--mono); font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; }
+  .stat .num.ok { color: var(--ok); }
+  .stat .num.bad { color: var(--error); }
+  .stat .label { font-size: 0.82rem; color: var(--muted); margin-top: 0.4rem; }
+  .stat .sub { font-size: 0.72rem; color: var(--faint); margin-top: 0.15rem; }
+
+  /* ---- Stack pills ---- */
+  .pills { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; }
+  .pill {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    color: var(--muted);
+  }
+
+  /* ---- Final CTA ---- */
+  .cta-block { text-align: center; padding: 3.5rem 0 4.5rem; }
+  .cta-block h2 { font-family: Georgia, serif; font-size: 1.9rem; margin: 0 0 0.75rem; }
+  .cta-block p { color: var(--muted); margin: 0 0 1.5rem; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--faint);
+  }
+  footer a { color: var(--muted); font-weight: 600; text-decoration: none; }
+  footer a:hover { color: var(--accent-dark); }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/ui/" class="brand">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="3"/>
+        <path d="M8 2v4M16 2v4M3 9h18"/>
+      </svg>
+    </span>
+    <span class="brand-name">Booking API</span>
+  </a>
+  <nav>
+    <a class="textlink" href="https://github.com/ApparentlyTejas/bookingAPI" target="_blank" rel="noopener">Source</a>
+    <a class="btn" href="/ui/">Open the app</a>
+  </nav>
+</header>
+
+<main>
+
+  <section class="hero">
+    <span class="eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 3.8 8.5 9 10 5.2-1.5 9-5 9-10V6z"/></svg>
+      Concurrency-safe by design, not by luck
+    </span>
+    <h1 class="headline">Two people book the same slot. <em>Only one should win.</em></h1>
+    <p class="subhead">
+      A resource booking API built around one real concurrency bug — found it under load,
+      fixed it two different ways, and load-tested both until the numbers proved which one held up.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn" href="/ui/">
+        Open the app
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a class="btn secondary" href="https://github.com/ApparentlyTejas/bookingAPI" target="_blank" rel="noopener">View the source</a>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-eyebrow">The bug</div>
+      <h2>Check-then-insert isn't atomic</h2>
+      <p>Two requests can both check "is this slot free?", both get "yes," and both insert — because nothing ties the check to the write.</p>
+    </div>
+    <div class="compare">
+      <div class="panel">
+        <p class="panel-title"><span class="panel-dot bad"></span>Naive: check, then insert</p>
+        <div class="race-lane">
+          <span class="race-label">request A</span>
+          <div class="race-track">
+            <span class="race-seg check" style="left:0%; width:40%">SELECT — free</span>
+            <span class="race-seg insert" style="left:74%; width:24%">INSERT</span>
+          </div>
+        </div>
+        <div class="race-lane">
+          <span class="race-label">request B</span>
+          <div class="race-track">
+            <span class="race-seg check" style="left:20%; width:40%">SELECT — free</span>
+            <span class="race-seg insert" style="left:56%; width:24%">INSERT</span>
+          </div>
+        </div>
+        <p class="race-caption">B's check runs before A's insert lands, so <strong>both</strong> see an empty slot and both write. Two overlapping bookings, both "successful."</p>
+      </div>
+      <div class="panel">
+        <p class="panel-title"><span class="panel-dot good"></span>Fixed: a database constraint</p>
+        <pre class="code-block"><span class="kw">ALTER TABLE</span> bookings
+  <span class="kw">ADD CONSTRAINT</span> bookings_no_overlap
+  <span class="kw">EXCLUDE USING</span> gist (
+    resource_id <span class="kw">WITH</span> =,
+    tstzrange(start_time, end_time) <span class="kw">WITH</span> &amp;&amp;
+  );</pre>
+        <p class="race-caption">Postgres itself rejects the second row at commit time — <strong>no application code has to remember to check anything.</strong> A row-lock alternative was tried first; it worked too, but serialized every booking on a resource, not just conflicting ones.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-eyebrow">Load-tested, not asserted</div>
+      <h2>Real numbers from racing the same slot</h2>
+      <p>30 concurrent users, same resource, same exact timeslot, fired at once — repeated after each fix.</p>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="num">5,558</div>
+        <div class="label">requests in 10 seconds</div>
+        <div class="sub">racing one identical slot</div>
+      </div>
+      <div class="stat">
+        <div class="num ok">1 / 5,557</div>
+        <div class="label">booked vs. correctly rejected</div>
+        <div class="sub">0 overlapping rows landed</div>
+      </div>
+      <div class="stat">
+        <div class="num">570 req/s</div>
+        <div class="label">sustained throughput</div>
+        <div class="sub">exclusion constraint, no app lock</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-eyebrow">Under the hood</div>
+      <h2>Built with</h2>
+    </div>
+    <div class="pills">
+      <span class="pill">FastAPI</span>
+      <span class="pill">PostgreSQL 16</span>
+      <span class="pill">SQLAlchemy</span>
+      <span class="pill">EXCLUDE USING gist</span>
+      <span class="pill">JWT auth</span>
+      <span class="pill">Docker Compose</span>
+      <span class="pill">Locust</span>
+    </div>
+  </section>
+
+  <section class="cta-block">
+    <h2>See it hold the line yourself.</h2>
+    <p>Register, pick a slot, try to break it.</p>
+    <a class="btn" href="/ui/">
+      Open the app
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+  </section>
+
+</main>
+
+<footer>
+  A solo portfolio build. <a href="https://github.com/ApparentlyTejas/bookingAPI" target="_blank" rel="noopener">Source on GitHub</a>
+</footer>
+
+</body>
+</html>
