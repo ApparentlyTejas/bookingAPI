@@ -121,7 +121,13 @@
   @media (prefers-reduced-motion: reduce) {
     .card { animation: none; }
   }
-  .card-title { font-size: 1rem; font-weight: 650; margin: 0 0 1.1rem; letter-spacing: -0.01em; }
+  .card-title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 1.1rem;
+    letter-spacing: -0.01em;
+  }
 
   label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 0.35rem; }
   input, select {
@@ -340,8 +346,42 @@
   }
 
   /* ---- App / timeline ---- */
-  .app-shell { padding: 1.75rem 2rem 2rem; }
-  .app-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.1rem; }
+  .app-shell { padding: 2rem 2.25rem 2.25rem; }
+  .app-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.4rem; gap: 1rem; }
+  .app-header-text { min-width: 0; }
+  .app-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+    border: 1px solid #f3d9b8;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    margin-bottom: 0.6rem;
+  }
+
+  .summary-row { display: flex; gap: 0.5rem; margin: 0.9rem 0; flex-wrap: wrap; }
+  .summary-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    background: #f7f4ee;
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+  }
+  .summary-chip .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .summary-chip .dot.free { background: var(--free-border); }
+  .summary-chip .dot.booked { background: #d97b70; }
+  .summary-chip .dot.past { background: var(--faint); }
+  .summary-chip b { color: var(--text); font-weight: 700; }
 
   .timeline {
     position: relative;
@@ -355,9 +395,10 @@
     align-items: center;
     width: 100%;
     height: var(--row-h);
-    padding: 0 1rem;
+    padding: 0 1rem 0 0.85rem;
     background: var(--free);
     border: none;
+    border-left: 3px solid var(--free-border);
     border-bottom: 1px solid var(--border);
     box-shadow: none;
     border-radius: 0;
@@ -365,6 +406,16 @@
     font-family: inherit;
     color: var(--text);
     transition: background-color 0.12s ease;
+    opacity: 0;
+    animation: rowIn 0.32s ease forwards;
+    animation-delay: calc(var(--i, 0) * 18ms);
+  }
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateX(-4px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tl-row { animation: none; opacity: 1; }
   }
   .tl-row:last-child { border-bottom: none; }
   .tl-row:hover:not(:disabled) { transform: none; box-shadow: none; background: #d6f7e4; }
@@ -389,9 +440,9 @@
     transition: opacity 0.12s ease;
   }
   .tl-row:hover:not(:disabled) .tl-action { opacity: 1; }
-  .tl-row.booked { background: var(--booked); cursor: default; }
+  .tl-row.booked { background: var(--booked); border-left-color: var(--booked-border); cursor: default; }
   .tl-row.booked .tl-action { opacity: 1; color: var(--error); }
-  .tl-row.past { background: #f2f2f5; cursor: default; }
+  .tl-row.past { background: #f2f2f5; border-left-color: var(--border); cursor: default; }
   .tl-row.past .tl-time { color: var(--faint); }
   .tl-row.past .tl-action { opacity: 1; color: var(--faint); }
   .tl-row.just-booked { background: var(--ok-bg); animation: pulseBooked 1s ease; }
@@ -551,7 +602,13 @@
 
   <section id="appCard" class="card app-shell hidden">
     <div class="app-header">
-      <p class="card-title" style="margin:0">Book a slot</p>
+      <div class="app-header-text">
+        <span class="app-badge">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 3.8 8.5 9 10 5.2-1.5 9-5 9-10V6z"/></svg>
+          Enforced by a database constraint
+        </span>
+        <p class="card-title" style="margin:0">Book a slot</p>
+      </div>
       <button type="button" class="link-btn" id="todayBtn" style="margin:0">Jump to today</button>
     </div>
     <div class="row">
@@ -570,6 +627,7 @@
       </div>
     </div>
     <p class="hint">Hourly slots, 08:00–20:00 UTC. Click a free slot to book it.</p>
+    <div id="summaryRow" class="summary-row"></div>
     <div id="timeline" class="timeline"></div>
     <button id="resendBtn" class="secondary block hidden" style="margin-top:1rem">Resend last booking (test idempotency key)</button>
   </section>
@@ -823,6 +881,7 @@ async function loadCalendar(justBookedHour) {
   timelineEl.style.position = "relative";
 
   const now = new Date();
+  const counts = { free: 0, booked: 0, past: 0 };
 
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
     const { start, end } = slotRange(dateStr, hour);
@@ -832,12 +891,14 @@ async function loadCalendar(justBookedHour) {
       (b) => new Date(b.start_time).getTime() < endMs && new Date(b.end_time).getTime() > startMs
     );
     const isPast = !isBooked && startMs <= now.getTime();
+    counts[isBooked ? "booked" : isPast ? "past" : "free"]++;
 
     const row = document.createElement("button");
     row.type = "button";
     row.className = "tl-row" + (isBooked ? " booked" : isPast ? " past" : "");
     if (hour === justBookedHour) row.classList.add("just-booked");
     row.disabled = isBooked || isPast;
+    row.style.setProperty("--i", hour - START_HOUR);
 
     const time = document.createElement("span");
     time.className = "tl-time";
@@ -866,14 +927,32 @@ async function loadCalendar(justBookedHour) {
   }
 
   if (dateStr === todayUTCString()) {
-    const now = new Date();
-    const hourFloat = now.getUTCHours() + now.getUTCMinutes() / 60;
+    const nowForLine = new Date();
+    const hourFloat = nowForLine.getUTCHours() + nowForLine.getUTCMinutes() / 60;
     if (hourFloat >= START_HOUR && hourFloat <= END_HOUR) {
       const line = document.createElement("div");
       line.className = "now-line";
       line.style.top = `${(hourFloat - START_HOUR) * 46}px`;
       timelineEl.appendChild(line);
     }
+  }
+
+  renderSummary(counts);
+}
+
+function renderSummary(counts) {
+  const el = document.getElementById("summaryRow");
+  el.innerHTML = "";
+  const parts = [
+    { key: "free", label: "available", n: counts.free },
+    { key: "booked", label: "booked", n: counts.booked },
+    { key: "past", label: "past", n: counts.past },
+  ].filter((p) => p.n > 0);
+  for (const p of parts) {
+    const chip = document.createElement("span");
+    chip.className = "summary-chip";
+    chip.innerHTML = `<span class="dot ${p.key}"></span><b>${p.n}</b> ${p.label}`;
+    el.appendChild(chip);
   }
 }
 
