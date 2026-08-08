@@ -120,8 +120,7 @@
     .card { animation: none; }
   }
   .card-title {
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 700;
     margin: 0 0 1.1rem;
     letter-spacing: -0.01em;
@@ -377,6 +376,7 @@
   }
 
   .booking-info {
+    min-width: 0;
     border-right: 1px solid var(--border);
     padding-right: 1.5rem;
   }
@@ -390,10 +390,11 @@
 
   .booking-calendar { min-width: 0; }
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-  .cal-month-label { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 1.02rem; margin: 0; }
+  .cal-month-label { font-weight: 700; font-size: 1.02rem; margin: 0; }
   .cal-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
     text-align: center;
     font-size: 0.66rem;
     font-weight: 700;
@@ -402,6 +403,7 @@
     letter-spacing: 0.03em;
     margin-bottom: 0.4rem;
   }
+  .cal-weekdays span { min-width: 0; }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
   .cal-day {
     min-width: 0;
@@ -648,7 +650,7 @@
           </div>
           <div class="meta-row">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18"/></svg>
-            Times shown in UTC
+            Times shown in CET
           </div>
         </div>
         <div id="summaryRow" class="summary-row"></div>
@@ -870,6 +872,17 @@ function slotRange(dateStr, hour) {
   return { start, end };
 }
 
+const DISPLAY_TZ = "Europe/Berlin";
+
+function formatClockTime(isoString) {
+  return new Date(isoString).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: DISPLAY_TZ,
+  });
+}
+
 function renderMonthCalendar() {
   const grid = document.getElementById("calGrid");
   grid.innerHTML = "";
@@ -879,7 +892,7 @@ function renderMonthCalendar() {
   document.getElementById("monthLabel").textContent = calendarCursor.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
-    timeZone: "UTC",
+    timeZone: DISPLAY_TZ,
   });
 
   const firstOfMonth = new Date(Date.UTC(year, month, 1));
@@ -947,7 +960,7 @@ async function loadTimesForDate(dateStr) {
     weekday: "long",
     month: "long",
     day: "numeric",
-    timeZone: "UTC",
+    timeZone: DISPLAY_TZ,
   });
 
   if (!resourceId) {
@@ -988,7 +1001,7 @@ async function loadTimesForDate(dateStr) {
     );
     const isPast = !isBooked && startMs <= now.getTime();
     counts[isBooked ? "booked" : isPast ? "past" : "free"]++;
-    if (!isBooked && !isPast) freeHours.push(hour);
+    if (!isBooked && !isPast) freeHours.push({ hour, start });
   }
   renderSummary(counts);
 
@@ -997,11 +1010,11 @@ async function loadTimesForDate(dateStr) {
     timesList.innerHTML = '<div class="empty-state">No times available this day.</div>';
     return;
   }
-  freeHours.forEach((hour, i) => {
+  freeHours.forEach(({ hour, start }, i) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "time-pill";
-    btn.textContent = `${String(hour).padStart(2, "0")}:00`;
+    btn.textContent = formatClockTime(start);
     btn.style.setProperty("--i", i);
     btn.onclick = () => selectTime(hour, btn);
     timesList.appendChild(btn);
@@ -1012,8 +1025,8 @@ function selectTime(hour, btn) {
   selectedHour = hour;
   document.querySelectorAll(".time-pill").forEach((b) => b.classList.remove("selected"));
   btn.classList.add("selected");
-  document.getElementById("confirmLabel").textContent =
-    `${String(hour).padStart(2, "0")}:00–${String(hour + 1).padStart(2, "0")}:00`;
+  const { start, end } = slotRange(selectedDateStr, hour);
+  document.getElementById("confirmLabel").textContent = `${formatClockTime(start)}–${formatClockTime(end)}`;
   document.getElementById("confirmBtn").classList.remove("hidden");
 }
 
@@ -1055,7 +1068,7 @@ async function bookSlot(resourceId, dateStr, hour, btn) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      showToast(`Booked ${String(hour).padStart(2, "0")}:00 (booking #${booking.id}).`, "ok");
+      showToast(`Booked ${formatClockTime(start)} (booking #${booking.id}).`, "ok");
       lastBookingPayload = payload;
       selectedHour = null;
       document.getElementById("confirmBtn").classList.add("hidden");
@@ -1099,14 +1112,13 @@ function buildBookingRow(b, isPast) {
   resourceEl.textContent = b.resource_name;
 
   const start = new Date(b.start_time);
-  const end = new Date(b.end_time);
   const dateLabel = start.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
-    timeZone: "UTC",
+    timeZone: DISPLAY_TZ,
   });
-  const timeLabel = `${String(start.getUTCHours()).padStart(2, "0")}:00–${String(end.getUTCHours()).padStart(2, "0")}:00 UTC`;
+  const timeLabel = `${formatClockTime(b.start_time)}–${formatClockTime(b.end_time)} CET`;
 
   const timeEl = document.createElement("div");
   timeEl.className = "mb-time";
