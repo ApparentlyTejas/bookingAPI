@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Booking API — Calendar</title>
+<style>
+  :root {
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e2e2e5;
+    --text: #1c1c1f;
+    --muted: #6b6b73;
+    --accent: #2f6fed;
+    --free: #e9f5ec;
+    --free-border: #34a853;
+    --booked: #fdeceb;
+    --booked-border: #ea4335;
+    --error: #c5221f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 { font-size: 1.1rem; margin: 0; }
+  main {
+    max-width: 640px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
+  input, select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+  }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.9rem;
+    background: var(--accent);
+    color: white;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .row { display: flex; gap: 0.75rem; }
+  .row > div { flex: 1; }
+  .slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
+  .slot {
+    border-radius: 6px;
+    padding: 0.6rem 0.4rem;
+    text-align: center;
+    font-size: 0.85rem;
+    border: 1px solid var(--free-border);
+    background: var(--free);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .slot:hover { filter: brightness(0.97); }
+  .slot.booked {
+    border-color: var(--booked-border);
+    background: var(--booked);
+    color: var(--muted);
+    cursor: default;
+  }
+  .slot:disabled { cursor: default; }
+  .status { font-size: 0.85rem; margin-top: 0.75rem; min-height: 1.2em; }
+  .status.error { color: var(--error); }
+  .status.ok { color: #1e7e34; }
+  .hidden { display: none !important; }
+  .muted { color: var(--muted); font-size: 0.85rem; }
+  a.linklike { color: var(--accent); cursor: pointer; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Booking API</h1>
+  <div id="who" class="muted hidden">
+    <span id="whoEmail"></span>
+    &nbsp;·&nbsp;<a class="linklike" id="logoutLink">log out</a>
+  </div>
+</header>
+
+<main>
+
+  <section id="authCard" class="card">
+    <div id="loginForm">
+      <label for="loginEmail">Email</label>
+      <input id="loginEmail" type="email" autocomplete="username" />
+      <label for="loginPassword">Password</label>
+      <input id="loginPassword" type="password" autocomplete="current-password" />
+      <button id="loginBtn">Log in</button>
+      <p class="muted">No account? <a class="linklike" id="showRegister">Register</a></p>
+    </div>
+
+    <div id="registerForm" class="hidden">
+      <label for="registerEmail">Email</label>
+      <input id="registerEmail" type="email" autocomplete="username" />
+      <label for="registerPassword">Password</label>
+      <input id="registerPassword" type="password" autocomplete="new-password" />
+      <button id="registerBtn">Register</button>
+      <p class="muted">Already have an account? <a class="linklike" id="showLogin">Log in</a></p>
+    </div>
+
+    <div id="authStatus" class="status"></div>
+  </section>
+
+  <section id="appCard" class="card hidden">
+    <div class="row">
+      <div>
+        <label for="resourceSelect">Resource</label>
+        <select id="resourceSelect"></select>
+      </div>
+      <div>
+        <label for="dateInput">Date</label>
+        <input id="dateInput" type="date" />
+      </div>
+    </div>
+    <p class="muted">Hourly slots, 08:00–20:00 UTC. Click a free slot to book it.</p>
+    <div id="slots" class="slots"></div>
+    <div id="bookStatus" class="status"></div>
+    <button id="resendBtn" class="secondary hidden">Resend last booking (test idempotency key)</button>
+  </section>
+
+</main>
+
+<script>
+const TOKEN_KEY = "booking_api_token";
+const TOKEN_EMAIL_KEY = "booking_api_email";
+const START_HOUR = 8;
+const END_HOUR = 20;
+
+let lastBookingPayload = null;
+
+function token() { return localStorage.getItem(TOKEN_KEY); }
+
+function setStatus(el, message, kind) {
+  el.textContent = message || "";
+  el.className = "status" + (kind ? " " + kind : "");
+}
+
+async function api(path, options = {}) {
+  const headers = options.headers || {};
+  if (token()) headers["Authorization"] = "Bearer " + token();
+  const res = await fetch(path, { ...options, headers });
+  let body = null;
+  try { body = await res.json(); } catch (e) { /* no body */ }
+  if (!res.ok) {
+    const detail = (body && body.detail) || res.statusText;
+    const err = new Error(detail);
+    err.status = res.status;
+    throw err;
+  }
+  return body;
+}
+
+function showAuthed(email) {
+  document.getElementById("authCard").classList.add("hidden");
+  document.getElementById("appCard").classList.remove("hidden");
+  document.getElementById("who").classList.remove("hidden");
+  document.getElementById("whoEmail").textContent = email;
+}
+
+function showLoggedOut() {
+  document.getElementById("authCard").classList.remove("hidden");
+  document.getElementById("appCard").classList.add("hidden");
+  document.getElementById("who").classList.add("hidden");
+}
+
+document.getElementById("showRegister").onclick = () => {
+  document.getElementById("loginForm").classList.add("hidden");
+  document.getElementById("registerForm").classList.remove("hidden");
+  setStatus(document.getElementById("authStatus"), "");
+};
+document.getElementById("showLogin").onclick = () => {
+  document.getElementById("registerForm").classList.add("hidden");
+  document.getElementById("loginForm").classList.remove("hidden");
+  setStatus(document.getElementById("authStatus"), "");
+};
+
+document.getElementById("loginBtn").onclick = async () => {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const statusEl = document.getElementById("authStatus");
+  try {
+    const res = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ username: email, password }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.detail || "Login failed");
+    localStorage.setItem(TOKEN_KEY, body.access_token);
+    localStorage.setItem(TOKEN_EMAIL_KEY, email);
+    setStatus(statusEl, "", "");
+    await initApp(email);
+  } catch (e) {
+    setStatus(statusEl, e.message, "error");
+  }
+};
+
+document.getElementById("registerBtn").onclick = async () => {
+  const email = document.getElementById("registerEmail").value.trim();
+  const password = document.getElementById("registerPassword").value;
+  const statusEl = document.getElementById("authStatus");
+  try {
+    await api("/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    setStatus(statusEl, "Registered — now log in.", "ok");
+    document.getElementById("registerForm").classList.add("hidden");
+    document.getElementById("loginForm").classList.remove("hidden");
+    document.getElementById("loginEmail").value = email;
+  } catch (e) {
+    setStatus(statusEl, e.message, "error");
+  }
+};
+
+document.getElementById("logoutLink").onclick = () => {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EMAIL_KEY);
+  showLoggedOut();
+};
+
+function onSelectionChanged() {
+  document.getElementById("resendBtn").classList.add("hidden");
+  setStatus(document.getElementById("bookStatus"), "");
+  loadCalendar();
+}
+document.getElementById("resourceSelect").onchange = onSelectionChanged;
+document.getElementById("dateInput").onchange = onSelectionChanged;
+
+async function loadResources() {
+  const select = document.getElementById("resourceSelect");
+  select.innerHTML = "";
+  const resources = await api("/resources");
+  if (resources.length === 0) {
+    select.innerHTML = "<option disabled>No resources yet</option>";
+    return;
+  }
+  for (const r of resources) {
+    const opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent = r.name;
+    select.appendChild(opt);
+  }
+}
+
+function slotRange(dateStr, hour) {
+  const start = `${dateStr}T${String(hour).padStart(2, "0")}:00:00Z`;
+  const end = `${dateStr}T${String(hour + 1).padStart(2, "0")}:00:00Z`;
+  return { start, end };
+}
+
+async function loadCalendar() {
+  const resourceId = document.getElementById("resourceSelect").value;
+  const dateStr = document.getElementById("dateInput").value;
+  const slotsEl = document.getElementById("slots");
+  slotsEl.innerHTML = "";
+  if (!resourceId || !dateStr) return;
+
+  const bookings = await api(`/bookings?resource_id=${resourceId}&date=${dateStr}`);
+
+  for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+    const { start, end } = slotRange(dateStr, hour);
+    const startMs = new Date(start).getTime();
+    const endMs = new Date(end).getTime();
+    const isBooked = bookings.some(
+      (b) => new Date(b.start_time).getTime() < endMs && new Date(b.end_time).getTime() > startMs
+    );
+
+    const btn = document.createElement("button");
+    btn.className = "slot" + (isBooked ? " booked" : "");
+    btn.textContent = `${String(hour).padStart(2, "0")}:00`;
+    btn.disabled = isBooked;
+    if (!isBooked) {
+      btn.onclick = () => bookSlot(resourceId, dateStr, hour, btn);
+    }
+    slotsEl.appendChild(btn);
+  }
+}
+
+async function bookSlot(resourceId, dateStr, hour, btn) {
+  const { start, end } = slotRange(dateStr, hour);
+  const statusEl = document.getElementById("bookStatus");
+  const idempotencyKey = crypto.randomUUID();
+  const payload = {
+    resource_id: Number(resourceId),
+    start_time: start,
+    end_time: end,
+    idempotency_key: idempotencyKey,
+  };
+  btn.disabled = true;
+  try {
+    const booking = await api("/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setStatus(statusEl, `Booked ${String(hour).padStart(2, "0")}:00 (booking #${booking.id}).`, "ok");
+    lastBookingPayload = payload;
+    document.getElementById("resendBtn").classList.remove("hidden");
+    await loadCalendar();
+  } catch (e) {
+    setStatus(statusEl, e.status === 409 ? "That slot was just taken — refreshing." : e.message, "error");
+    btn.disabled = false;
+    await loadCalendar();
+  }
+}
+
+document.getElementById("resendBtn").onclick = async () => {
+  const statusEl = document.getElementById("bookStatus");
+  if (!lastBookingPayload) return;
+  try {
+    const booking = await api("/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lastBookingPayload),
+    });
+    setStatus(
+      statusEl,
+      `Resent with the same idempotency key -> same booking #${booking.id} came back. No duplicate created.`,
+      "ok"
+    );
+  } catch (e) {
+    setStatus(statusEl, e.message, "error");
+  }
+};
+
+async function initApp(email) {
+  showAuthed(email);
+  document.getElementById("dateInput").value = new Date().toISOString().slice(0, 10);
+  await loadResources();
+  await loadCalendar();
+}
+
+(function boot() {
+  const t = token();
+  const email = localStorage.getItem(TOKEN_EMAIL_KEY);
+  if (t && email) {
+    initApp(email).catch(() => showLoggedOut());
+  } else {
+    showLoggedOut();
+  }
+})();
+</script>
+
+</body>
+</html>

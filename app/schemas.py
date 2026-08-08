@@ -39,6 +39,7 @@ class BookingCreate(BaseModel):
     resource_id: int
     start_time: datetime
     end_time: datetime
+    idempotency_key: str | None = None
 
 
 class BookingOut(BaseModel):
@@ -49,4 +50,5 @@ class BookingOut(BaseModel):
     user_id: int
     start_time: datetime
     end_time: datetime
+    idempotency_key: str | None
     created_at: datetime

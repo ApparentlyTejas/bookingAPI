@@ -18,6 +18,7 @@ Then apply the schema manually (not auto-run — see CLAUDE.md conventions):
 ```bash
 docker compose exec db psql -U app -d bookingapi -f /db/001_schema.sql
 docker compose exec db psql -U app -d bookingapi -f /db/002_add_exclusion_constraint.sql
+docker compose exec db psql -U app -d bookingapi -f /db/003_add_idempotency_key.sql
 ```
 
 Check it's up:
@@ -26,6 +27,14 @@ Check it's up:
 curl http://localhost:8000/health
 open http://localhost:8000/docs
 ```
+
+## Calendar UI
+
+A minimal static calendar page is served at `http://localhost:8000/ui/` —
+register/log in, pick a resource and date, and click an hourly slot to book
+it. A "Resend last booking" button re-submits the same request (same
+idempotency key) to demonstrate that a retry returns the original booking
+instead of erroring or double-booking.
 
 ## Auth flow
 
@@ -55,7 +64,12 @@ curl -X POST http://localhost:8000/resources \
 curl -X POST http://localhost:8000/bookings \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"resource_id": 1, "start_time": "2026-09-01T10:00:00Z", "end_time": "2026-09-01T11:00:00Z"}'
+  -d '{"resource_id": 1, "start_time": "2026-09-01T10:00:00Z", "end_time": "2026-09-01T11:00:00Z", "idempotency_key": "<client-generated-uuid>"}'
+# idempotency_key is optional. Resubmitting the same key returns the
+# original booking instead of erroring or creating a duplicate.
+
+curl "http://localhost:8000/bookings?resource_id=1&date=2026-09-01" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Load test (step 3 — reproduce the race condition)

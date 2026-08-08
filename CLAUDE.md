@@ -97,3 +97,40 @@ note the date + any surprises under each one.
       requests queue on a row lock. Surprise: the build plan's own text said
       `tsrange`, but the columns are `TIMESTAMPTZ` — needed `tstzrange`
       instead, `tsrange` would have failed to compile against them.
+- [x] Step 6 (2026-08-08): Idempotency key on booking submission
+      (`db/003_add_idempotency_key.sql`: `idempotency_key` column + `UNIQUE
+      (user_id, idempotency_key)`) and a minimal static calendar UI at
+      `/ui/` (`app/static/index.html`, mounted in `app/main.py`, plain
+      HTML/CSS/vanilla JS — no build step, no framework). Added `GET
+      /bookings?resource_id=&date=` for the UI to know which slots are
+      taken. Surprise (the interesting part): stress-testing the
+      idempotency key under N truly-simultaneous duplicate submissions
+      (same key) surfaced two real concurrency bugs beyond what steps 4-5
+      covered — (1) a single check-then-insert attempt could return a
+      spurious 409 for a clean retry, because a losing transaction can fail
+      against a different in-flight insert than the one that actually
+      commits, so an immediate re-check can run before the real winner is
+      visible; (2) at the same concurrency level Postgres occasionally hit
+      an actual deadlock while validating the GiST exclusion constraint
+      against several uncommitted candidates at once, surfacing as
+      `OperationalError` (not `IntegrityError`) and slipping through as an
+      unhandled 500. Root cause of both: N copies of the *same* logical
+      request were racing through conflict machinery meant for genuinely
+      different writers. Fixed properly with `pg_advisory_xact_lock`
+      scoped to `hash(user_id, idempotency_key)` — true duplicates now
+      serialize on a cheap lock before ever reaching the constraint, while
+      genuinely different bookings are completely unaffected. Verified: 50
+      concurrent identical-key requests (5 runs x 10) all returned the same
+      booking, 0 errors; a control run with 10 different keys on the same
+      slot still correctly gave 1 success + 9 clean 409s; the original
+      step-5 Locust regression (no idempotency key, 30 users/10s) still
+      held with 0 overlaps and higher throughput than before (570 req/s).
+      UI verified end-to-end in a real headless browser (Playwright):
+      register, log in, book a slot, see it turn red/booked, resend the
+      same booking and confirm the same booking id comes back. Caught and
+      fixed one real UI bug this way — `loadCalendar()` was unconditionally
+      re-hiding the "resend" button on every refresh, including the
+      refresh triggered by a successful booking, so it never stayed
+      visible long enough to click — and one contrast bug (free-slot text
+      was invisible white-on-light-green because a generic `button{color:
+      white}` rule wasn't overridden for `.slot`).
