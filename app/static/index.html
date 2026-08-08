@@ -204,14 +204,16 @@
     color: var(--muted);
     border: 1.5px solid var(--border);
     box-shadow: none;
-    width: 38px;
-    min-width: 38px;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.1rem;
     line-height: 1;
+    flex-shrink: 0;
   }
   .icon-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); box-shadow: none; transform: none; }
 
@@ -230,7 +232,15 @@
   .row { display: flex; gap: 0.85rem; }
   .row > div { flex: 1; min-width: 0; }
   .date-nav { display: flex; gap: 0.5rem; align-items: center; }
-  .date-nav input { margin-bottom: 0; flex: 1; min-width: 0; }
+  .date-nav input {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .day-label { font-size: 0.78rem; font-weight: 600; color: var(--accent); margin: 0.4rem 0 0; }
   .hint { color: var(--muted); font-size: 0.82rem; margin: 0.9rem 0 0.75rem; }
 
   @media (max-width: 560px) {
@@ -363,7 +373,7 @@
     width: 100%;
     height: var(--row-h);
     padding: 0 1rem;
-    background: transparent;
+    background: var(--free);
     border: none;
     border-bottom: 1px solid var(--border);
     box-shadow: none;
@@ -374,7 +384,7 @@
     transition: background-color 0.12s ease;
   }
   .tl-row:last-child { border-bottom: none; }
-  .tl-row:hover:not(:disabled) { transform: none; box-shadow: none; background: var(--accent-soft); }
+  .tl-row:hover:not(:disabled) { transform: none; box-shadow: none; background: #d6f7e4; }
   .tl-time {
     width: 64px;
     flex-shrink: 0;
@@ -383,8 +393,9 @@
     font-size: 0.85rem;
     color: var(--text);
   }
-  .tl-status { flex: 1; font-size: 0.82rem; color: var(--faint); }
-  .tl-row.booked .tl-status { color: #b91c1c; font-weight: 600; }
+  .tl-status { flex: 1; font-size: 0.82rem; font-weight: 600; color: var(--free-text); }
+  .tl-row.booked .tl-status { color: #b91c1c; }
+  .tl-row.past .tl-status { color: var(--faint); }
   .tl-action {
     font-size: 0.78rem;
     font-weight: 650;
@@ -395,6 +406,9 @@
   .tl-row:hover:not(:disabled) .tl-action { opacity: 1; }
   .tl-row.booked { background: var(--booked); cursor: default; }
   .tl-row.booked .tl-action { opacity: 1; font-size: 0.95rem; }
+  .tl-row.past { background: #f2f2f5; cursor: default; }
+  .tl-row.past .tl-time { color: var(--faint); }
+  .tl-row.past .tl-action { opacity: 1; color: var(--faint); }
   .tl-row.just-booked { background: var(--ok-bg); animation: pulseBooked 1s ease; }
   @keyframes pulseBooked {
     0% { background: #bbf7d0; }
@@ -566,6 +580,7 @@
           <input id="dateInput" type="date" />
           <button type="button" class="icon-btn" id="nextDayBtn" aria-label="Next day">›</button>
         </div>
+        <p id="dayLabel" class="day-label"></p>
       </div>
     </div>
     <p class="hint">Hourly slots, 08:00–20:00 UTC. Click a free slot to book it.</p>
@@ -772,6 +787,16 @@ function slotRange(dateStr, hour) {
   return { start, end };
 }
 
+function updateDayLabel(dateStr) {
+  const d = new Date(dateStr + "T00:00:00Z");
+  document.getElementById("dayLabel").textContent = d.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 function renderSkeleton(timelineEl) {
   const wrap = document.createElement("div");
   wrap.className = "tl-skeleton";
@@ -792,6 +817,7 @@ async function loadCalendar(justBookedHour) {
     timelineEl.innerHTML = '<div class="empty-state">Pick a resource and date to see availability.</div>';
     return;
   }
+  updateDayLabel(dateStr);
 
   renderSkeleton(timelineEl);
 
@@ -807,6 +833,8 @@ async function loadCalendar(justBookedHour) {
   timelineEl.innerHTML = "";
   timelineEl.style.position = "relative";
 
+  const now = new Date();
+
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
     const { start, end } = slotRange(dateStr, hour);
     const startMs = new Date(start).getTime();
@@ -814,12 +842,13 @@ async function loadCalendar(justBookedHour) {
     const isBooked = bookings.some(
       (b) => new Date(b.start_time).getTime() < endMs && new Date(b.end_time).getTime() > startMs
     );
+    const isPast = !isBooked && startMs <= now.getTime();
 
     const row = document.createElement("button");
     row.type = "button";
-    row.className = "tl-row" + (isBooked ? " booked" : "");
+    row.className = "tl-row" + (isBooked ? " booked" : isPast ? " past" : "");
     if (hour === justBookedHour) row.classList.add("just-booked");
-    row.disabled = isBooked;
+    row.disabled = isBooked || isPast;
 
     const time = document.createElement("span");
     time.className = "tl-time";
@@ -827,17 +856,17 @@ async function loadCalendar(justBookedHour) {
 
     const status = document.createElement("span");
     status.className = "tl-status";
-    status.textContent = isBooked ? "Booked" : "Available";
+    status.textContent = isBooked ? "Booked" : isPast ? "Past" : "Available";
 
     const action = document.createElement("span");
     action.className = "tl-action";
-    action.textContent = isBooked ? "🔒" : "+ Book";
+    action.textContent = isBooked ? "🔒" : isPast ? "—" : "+ Book";
 
     row.appendChild(time);
     row.appendChild(status);
     row.appendChild(action);
 
-    if (!isBooked) {
+    if (!isBooked && !isPast) {
       row.onclick = () => bookSlot(resourceId, dateStr, hour, row);
     }
     timelineEl.appendChild(row);

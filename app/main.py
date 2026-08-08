@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
@@ -11,6 +12,11 @@ app.include_router(auth.router)
 app.include_router(resources.router)
 app.include_router(bookings.router)
 app.mount("/ui", StaticFiles(directory="app/static", html=True), name="ui")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/ui/")
 
 
 @app.get("/health")
