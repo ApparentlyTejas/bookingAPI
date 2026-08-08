@@ -4,132 +4,556 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Booking API — Calendar</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='5' fill='%234f46e5'/%3E%3Cpath d='M8 6v3M16 6v3M4 10h16M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E" />
 <style>
   :root {
-    --bg: #f7f7f8;
+    --bg-1: #eef1fb;
+    --bg-2: #f7f8fc;
     --card: #ffffff;
-    --border: #e2e2e5;
-    --text: #1c1c1f;
-    --muted: #6b6b73;
-    --accent: #2f6fed;
-    --free: #e9f5ec;
-    --free-border: #34a853;
-    --booked: #fdeceb;
-    --booked-border: #ea4335;
-    --error: #c5221f;
+    --border: #e6e8f0;
+    --text: #14151f;
+    --muted: #6b7080;
+    --faint: #9ca0b0;
+    --accent: #4f46e5;
+    --accent-dark: #4338ca;
+    --accent-soft: #eef0ff;
+    --free: #edfdf5;
+    --free-border: #34d399;
+    --free-text: #067a55;
+    --booked: #fef2f2;
+    --booked-border: #fca5a5;
+    --error-bg: #fef2f2;
+    --error-border: #fecaca;
+    --error: #dc2626;
+    --ok-bg: #ecfdf5;
+    --ok-border: #a7f3d0;
+    --ok: #067a55;
+    --now-line: #ef4444;
+    --shadow-card: 0 1px 2px rgba(20, 21, 31, 0.04), 0 16px 32px -12px rgba(20, 21, 31, 0.14);
+    --shadow-btn: 0 1px 2px rgba(79, 70, 229, 0.25), 0 6px 16px -4px rgba(79, 70, 229, 0.35);
+    --row-h: 46px;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    background: var(--bg-2);
     color: var(--text);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
   }
+
+  /* ambient background blobs */
+  .bg-blobs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .bg-blobs span {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.35;
+    animation: drift 24s ease-in-out infinite alternate;
+  }
+  .bg-blobs span:nth-child(1) { width: 480px; height: 480px; top: -180px; left: -120px; background: #a5b4fc; }
+  .bg-blobs span:nth-child(2) { width: 420px; height: 420px; top: -80px; right: -140px; background: #c7d2fe; animation-delay: -6s; }
+  .bg-blobs span:nth-child(3) { width: 380px; height: 380px; bottom: -200px; left: 30%; background: #ddd6fe; animation-delay: -12s; }
+  @keyframes drift {
+    from { transform: translate(0, 0) scale(1); }
+    to { transform: translate(30px, 40px) scale(1.08); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bg-blobs span { animation: none; }
+  }
+
   header {
     padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border);
-    background: var(--card);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 20;
   }
-  header h1 { font-size: 1.1rem; margin: 0; }
+  .brand { display: flex; align-items: center; gap: 0.6rem; }
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-btn);
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 16px; height: 16px; }
+  header h1 { font-size: 1.05rem; margin: 0; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
+
+  .who { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+  .avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .who-email {
+    color: var(--muted);
+    font-size: 0.85rem;
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   main {
-    max-width: 640px;
-    margin: 2rem auto;
-    padding: 0 1rem;
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1.25rem;
   }
+
   .card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
+    border-radius: 18px;
+    box-shadow: var(--shadow-card);
+    animation: fadeInUp 0.45s cubic-bezier(.2,.8,.2,1);
   }
-  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card { animation: none; }
+  }
+  .card-title { font-size: 1rem; font-weight: 650; margin: 0 0 1.1rem; letter-spacing: -0.01em; }
+
+  label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 0.35rem; }
   input, select {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    padding: 0.65rem 0.75rem;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
     font-size: 0.95rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.9rem;
+    background: #fff;
+    color: var(--text);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    font-family: inherit;
   }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3.5px var(--accent-soft);
+  }
+  input.field-error { border-color: var(--error); }
+
   button {
     cursor: pointer;
     border: none;
-    border-radius: 6px;
-    padding: 0.5rem 0.9rem;
+    border-radius: 10px;
+    padding: 0.65rem 1.1rem;
     font-size: 0.9rem;
-    background: var(--accent);
+    font-weight: 600;
+    font-family: inherit;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
     color: white;
+    box-shadow: var(--shadow-btn);
+    transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    position: relative;
   }
-  button:disabled { opacity: 0.5; cursor: default; }
-  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-  .row { display: flex; gap: 0.75rem; }
-  .row > div { flex: 1; }
-  .slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
-  .slot {
-    border-radius: 6px;
-    padding: 0.6rem 0.4rem;
-    text-align: center;
-    font-size: 0.85rem;
-    border: 1px solid var(--free-border);
-    background: var(--free);
-    color: var(--text);
-    cursor: pointer;
+  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(79,70,229,.3), 0 10px 20px -4px rgba(79,70,229,.4); }
+  button:active:not(:disabled) { transform: translateY(0); }
+  button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+  button.block { width: 100%; }
+  button.secondary {
+    background: #fff;
+    color: var(--accent);
+    border: 1.5px solid var(--border);
+    box-shadow: none;
   }
-  .slot:hover { filter: brightness(0.97); }
-  .slot.booked {
-    border-color: var(--booked-border);
-    background: var(--booked);
+  button.secondary:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); box-shadow: none; }
+  button.is-loading { color: transparent !important; pointer-events: none; }
+  button.is-loading::after {
+    content: "";
+    position: absolute; left: 50%; top: 50%;
+    width: 15px; height: 15px;
+    margin: -7.5px 0 0 -7.5px;
+    border: 2px solid rgba(255,255,255,.45);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+  }
+  button.secondary.is-loading::after { border-color: rgba(79,70,229,.25); border-top-color: var(--accent); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .icon-btn {
+    background: #fff;
     color: var(--muted);
-    cursor: default;
+    border: 1.5px solid var(--border);
+    box-shadow: none;
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    line-height: 1;
   }
-  .slot:disabled { cursor: default; }
-  .status { font-size: 0.85rem; margin-top: 0.75rem; min-height: 1.2em; }
-  .status.error { color: var(--error); }
-  .status.ok { color: #1e7e34; }
+  .icon-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); box-shadow: none; transform: none; }
+
+  .link-btn {
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0;
+    margin: 0.4rem 0 1rem;
+  }
+  .link-btn:hover:not(:disabled) { text-decoration: underline; transform: none; box-shadow: none; }
+
+  .row { display: flex; gap: 0.85rem; }
+  .row > div { flex: 1; min-width: 0; }
+  .date-nav { display: flex; gap: 0.5rem; align-items: center; }
+  .date-nav input { margin-bottom: 0; flex: 1; min-width: 0; }
+  .hint { color: var(--muted); font-size: 0.82rem; margin: 0.9rem 0 0.75rem; }
+
+  @media (max-width: 560px) {
+    header { padding: 0.85rem 1rem; }
+    header h1 { font-size: 0.95rem; }
+    .who-email { max-width: 24vw; }
+    main { padding: 1.5rem 0.85rem; }
+    .app-shell { padding: 1.4rem 1.1rem 1.6rem; }
+    .row { flex-direction: column; gap: 0; }
+    .app-header { flex-wrap: wrap; gap: 0.5rem; }
+    .tl-time { width: 54px; }
+  }
+
   .hidden { display: none !important; }
   .muted { color: var(--muted); font-size: 0.85rem; }
-  a.linklike { color: var(--accent); cursor: pointer; font-size: 0.85rem; }
+  a.linklike { color: var(--accent); cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+  a.linklike:hover { text-decoration: underline; }
+
+  .status {
+    font-size: 0.85rem;
+    margin-top: 0.9rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 10px;
+    line-height: 1.4;
+    display: none;
+  }
+  .status:not(:empty) { display: block; }
+  .status.error { color: var(--error); background: var(--error-bg); border: 1px solid var(--error-border); }
+  .status.ok { color: var(--ok); background: var(--ok-bg); border: 1px solid var(--ok-border); }
+
+  /* ---- Auth split screen ---- */
+  .auth-shell {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    min-height: 480px;
+    overflow: hidden;
+  }
+  .auth-brand-panel {
+    background: linear-gradient(160deg, var(--accent) 0%, var(--accent-dark) 55%, #2d2a80 100%);
+    color: white;
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .auth-brand-panel::before {
+    content: "";
+    position: absolute;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    top: -120px; right: -100px;
+  }
+  .auth-brand-panel::after {
+    content: "";
+    position: absolute;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    bottom: -100px; left: -60px;
+  }
+  .auth-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    width: fit-content;
+    position: relative;
+    z-index: 1;
+  }
+  .auth-brand-panel h2 {
+    font-size: 1.65rem;
+    line-height: 1.28;
+    letter-spacing: -0.02em;
+    margin: 1rem 0 0.75rem;
+    position: relative;
+    z-index: 1;
+    max-width: 22ch;
+  }
+  .auth-brand-panel p {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.85);
+    margin: 0 0 1.5rem;
+    max-width: 34ch;
+    position: relative;
+    z-index: 1;
+  }
+  .auth-features { list-style: none; margin: 0; padding: 0; position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0.6rem; }
+  .auth-features li { display: flex; align-items: center; gap: 0.55rem; font-size: 0.85rem; color: rgba(255,255,255,0.92); }
+  .auth-features .tick {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.16);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem;
+    flex-shrink: 0;
+  }
+  .auth-form-panel { padding: 2.25rem 2.5rem; display: flex; flex-direction: column; justify-content: center; }
+
+  @media (max-width: 760px) {
+    .auth-shell { grid-template-columns: 1fr; min-height: 0; }
+    .auth-brand-panel { padding: 2rem 1.75rem; }
+    .auth-brand-panel h2 { font-size: 1.35rem; }
+    .auth-form-panel { padding: 1.75rem; }
+  }
+
+  /* ---- App / timeline ---- */
+  .app-shell { padding: 1.75rem 2rem 2rem; }
+  .app-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.1rem; }
+
+  .timeline {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .tl-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: var(--row-h);
+    padding: 0 1rem;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+    border-radius: 0;
+    text-align: left;
+    font-family: inherit;
+    color: var(--text);
+    transition: background-color 0.12s ease;
+  }
+  .tl-row:last-child { border-bottom: none; }
+  .tl-row:hover:not(:disabled) { transform: none; box-shadow: none; background: var(--accent-soft); }
+  .tl-time {
+    width: 64px;
+    flex-shrink: 0;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+  .tl-status { flex: 1; font-size: 0.82rem; color: var(--faint); }
+  .tl-row.booked .tl-status { color: #b91c1c; font-weight: 600; }
+  .tl-action {
+    font-size: 0.78rem;
+    font-weight: 650;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.12s ease;
+  }
+  .tl-row:hover:not(:disabled) .tl-action { opacity: 1; }
+  .tl-row.booked { background: var(--booked); cursor: default; }
+  .tl-row.booked .tl-action { opacity: 1; font-size: 0.95rem; }
+  .tl-row.just-booked { background: var(--ok-bg); animation: pulseBooked 1s ease; }
+  @keyframes pulseBooked {
+    0% { background: #bbf7d0; }
+    100% { background: var(--ok-bg); }
+  }
+
+  .now-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 0;
+    border-top: 2px solid var(--now-line);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .now-line::before {
+    content: "now";
+    position: absolute;
+    left: 8px; top: -8px;
+    background: var(--now-line);
+    color: white;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+  }
+  .now-line::after {
+    content: "";
+    position: absolute;
+    right: 8px; top: -3px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--now-line);
+  }
+
+  .tl-skeleton { padding: 0.5rem; }
+  .tl-skeleton-row {
+    height: var(--row-h);
+    margin: 2px 0;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #f1f2f7 25%, #f8f9fc 37%, #f1f2f7 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+  .empty-state {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  /* ---- Toasts ---- */
+  .toasts {
+    position: fixed;
+    top: 4.75rem;
+    right: 1.1rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: min(360px, calc(100vw - 2.2rem));
+  }
+  .toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: #fff;
+    border-radius: 12px;
+    padding: 0.8rem 0.95rem;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateX(16px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .toast.show { opacity: 1; transform: translateX(0); }
+  .toast-ok { border-left-color: var(--ok); }
+  .toast-error { border-left-color: var(--error); }
+  .toast-icon { flex-shrink: 0; font-size: 0.95rem; }
+  .toast-ok .toast-icon { color: var(--ok); }
+  .toast-error .toast-icon { color: var(--error); }
+
+  @media (max-width: 560px) {
+    .toasts { top: auto; bottom: 1.1rem; left: 1.1rem; right: 1.1rem; max-width: none; }
+    .toast { transform: translateY(16px); }
+    .toast.show { transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
 
+<div class="bg-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+
 <header>
-  <h1>Booking API</h1>
-  <div id="who" class="muted hidden">
-    <span id="whoEmail"></span>
-    &nbsp;·&nbsp;<a class="linklike" id="logoutLink">log out</a>
+  <div class="brand">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="3"/>
+        <path d="M8 2v4M16 2v4M3 9h18"/>
+      </svg>
+    </span>
+    <h1>Booking API</h1>
+  </div>
+  <div id="who" class="who hidden">
+    <span id="avatar" class="avatar"></span>
+    <span id="whoEmail" class="who-email"></span>
+    <a class="linklike" id="logoutLink">Log out</a>
   </div>
 </header>
 
 <main>
 
-  <section id="authCard" class="card">
-    <div id="loginForm">
-      <label for="loginEmail">Email</label>
-      <input id="loginEmail" type="email" autocomplete="username" />
-      <label for="loginPassword">Password</label>
-      <input id="loginPassword" type="password" autocomplete="current-password" />
-      <button id="loginBtn">Log in</button>
-      <p class="muted">No account? <a class="linklike" id="showRegister">Register</a></p>
+  <section id="authView" class="card auth-shell">
+    <div class="auth-brand-panel">
+      <span class="auth-badge">⚡ Concurrency-safe by design</span>
+      <h2>Book shared resources without double-booking. Ever.</h2>
+      <p>Backed by a Postgres exclusion constraint, not app-level guesswork — two people can never win the same slot.</p>
+      <ul class="auth-features">
+        <li><span class="tick">✓</span> Real-time availability</li>
+        <li><span class="tick">✓</span> Idempotent booking submissions</li>
+        <li><span class="tick">✓</span> Zero double-bookings, load-tested</li>
+      </ul>
     </div>
+    <div class="auth-form-panel">
+      <div id="loginForm">
+        <p class="card-title">Welcome back</p>
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="username" />
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" />
+        <button id="loginBtn" class="block">Log in</button>
+        <p class="muted" style="margin-top:0.9rem">No account? <a class="linklike" id="showRegister">Register</a></p>
+      </div>
 
-    <div id="registerForm" class="hidden">
-      <label for="registerEmail">Email</label>
-      <input id="registerEmail" type="email" autocomplete="username" />
-      <label for="registerPassword">Password</label>
-      <input id="registerPassword" type="password" autocomplete="new-password" />
-      <button id="registerBtn">Register</button>
-      <p class="muted">Already have an account? <a class="linklike" id="showLogin">Log in</a></p>
+      <div id="registerForm" class="hidden">
+        <p class="card-title">Create an account</p>
+        <label for="registerEmail">Email</label>
+        <input id="registerEmail" type="email" autocomplete="username" />
+        <label for="registerPassword">Password</label>
+        <input id="registerPassword" type="password" autocomplete="new-password" />
+        <button id="registerBtn" class="block">Register</button>
+        <p class="muted" style="margin-top:0.9rem">Already have an account? <a class="linklike" id="showLogin">Log in</a></p>
+      </div>
+
+      <div id="authStatus" class="status"></div>
     </div>
-
-    <div id="authStatus" class="status"></div>
   </section>
 
-  <section id="appCard" class="card hidden">
+  <section id="appCard" class="card app-shell hidden">
+    <div class="app-header">
+      <p class="card-title" style="margin:0">Book a slot</p>
+      <button type="button" class="link-btn" id="todayBtn" style="margin:0">Jump to today</button>
+    </div>
     <div class="row">
       <div>
         <label for="resourceSelect">Resource</label>
@@ -137,16 +561,21 @@
       </div>
       <div>
         <label for="dateInput">Date</label>
-        <input id="dateInput" type="date" />
+        <div class="date-nav">
+          <button type="button" class="icon-btn" id="prevDayBtn" aria-label="Previous day">‹</button>
+          <input id="dateInput" type="date" />
+          <button type="button" class="icon-btn" id="nextDayBtn" aria-label="Next day">›</button>
+        </div>
       </div>
     </div>
-    <p class="muted">Hourly slots, 08:00–20:00 UTC. Click a free slot to book it.</p>
-    <div id="slots" class="slots"></div>
-    <div id="bookStatus" class="status"></div>
-    <button id="resendBtn" class="secondary hidden">Resend last booking (test idempotency key)</button>
+    <p class="hint">Hourly slots, 08:00–20:00 UTC. Click a free slot to book it.</p>
+    <div id="timeline" class="timeline"></div>
+    <button id="resendBtn" class="secondary block hidden" style="margin-top:1rem">Resend last booking (test idempotency key)</button>
   </section>
 
 </main>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
 
 <script>
 const TOKEN_KEY = "booking_api_token";
@@ -161,6 +590,38 @@ function token() { return localStorage.getItem(TOKEN_KEY); }
 function setStatus(el, message, kind) {
   el.textContent = message || "";
   el.className = "status" + (kind ? " " + kind : "");
+}
+
+function showToast(message, kind = "ok", timeout = 4500) {
+  const container = document.getElementById("toasts");
+  const el = document.createElement("div");
+  el.className = `toast toast-${kind}`;
+  const icon = document.createElement("span");
+  icon.className = "toast-icon";
+  icon.textContent = kind === "error" ? "⚠" : "✓";
+  const msg = document.createElement("span");
+  msg.textContent = message;
+  el.appendChild(icon);
+  el.appendChild(msg);
+  container.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  const remove = () => {
+    el.classList.remove("show");
+    setTimeout(() => el.remove(), 220);
+  };
+  el.onclick = remove;
+  if (timeout) setTimeout(remove, timeout);
+}
+
+async function withLoading(btn, fn) {
+  btn.classList.add("is-loading");
+  btn.disabled = true;
+  try {
+    return await fn();
+  } finally {
+    btn.classList.remove("is-loading");
+    btn.disabled = false;
+  }
 }
 
 async function api(path, options = {}) {
@@ -178,15 +639,25 @@ async function api(path, options = {}) {
   return body;
 }
 
+function initialsAvatar(email) {
+  const el = document.getElementById("avatar");
+  el.textContent = (email[0] || "?").toUpperCase();
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = Math.abs(hash) % 360;
+  el.style.background = `hsl(${hue} 62% 45%)`;
+}
+
 function showAuthed(email) {
-  document.getElementById("authCard").classList.add("hidden");
+  document.getElementById("authView").classList.add("hidden");
   document.getElementById("appCard").classList.remove("hidden");
   document.getElementById("who").classList.remove("hidden");
   document.getElementById("whoEmail").textContent = email;
+  initialsAvatar(email);
 }
 
 function showLoggedOut() {
-  document.getElementById("authCard").classList.remove("hidden");
+  document.getElementById("authView").classList.remove("hidden");
   document.getElementById("appCard").classList.add("hidden");
   document.getElementById("who").classList.add("hidden");
 }
@@ -203,43 +674,49 @@ document.getElementById("showLogin").onclick = () => {
 };
 
 document.getElementById("loginBtn").onclick = async () => {
+  const btn = document.getElementById("loginBtn");
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
   const statusEl = document.getElementById("authStatus");
-  try {
-    const res = await fetch("/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ username: email, password }),
-    });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.detail || "Login failed");
-    localStorage.setItem(TOKEN_KEY, body.access_token);
-    localStorage.setItem(TOKEN_EMAIL_KEY, email);
-    setStatus(statusEl, "", "");
-    await initApp(email);
-  } catch (e) {
-    setStatus(statusEl, e.message, "error");
-  }
+  await withLoading(btn, async () => {
+    try {
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ username: email, password }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.detail || "Login failed");
+      localStorage.setItem(TOKEN_KEY, body.access_token);
+      localStorage.setItem(TOKEN_EMAIL_KEY, email);
+      setStatus(statusEl, "", "");
+      await initApp(email);
+    } catch (e) {
+      setStatus(statusEl, e.message, "error");
+    }
+  });
 };
 
 document.getElementById("registerBtn").onclick = async () => {
+  const btn = document.getElementById("registerBtn");
   const email = document.getElementById("registerEmail").value.trim();
   const password = document.getElementById("registerPassword").value;
   const statusEl = document.getElementById("authStatus");
-  try {
-    await api("/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    setStatus(statusEl, "Registered — now log in.", "ok");
-    document.getElementById("registerForm").classList.add("hidden");
-    document.getElementById("loginForm").classList.remove("hidden");
-    document.getElementById("loginEmail").value = email;
-  } catch (e) {
-    setStatus(statusEl, e.message, "error");
-  }
+  await withLoading(btn, async () => {
+    try {
+      await api("/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      setStatus(statusEl, "Registered — now log in.", "ok");
+      document.getElementById("registerForm").classList.add("hidden");
+      document.getElementById("loginForm").classList.remove("hidden");
+      document.getElementById("loginEmail").value = email;
+    } catch (e) {
+      setStatus(statusEl, e.message, "error");
+    }
+  });
 };
 
 document.getElementById("logoutLink").onclick = () => {
@@ -248,13 +725,30 @@ document.getElementById("logoutLink").onclick = () => {
   showLoggedOut();
 };
 
+function todayUTCString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function onSelectionChanged() {
   document.getElementById("resendBtn").classList.add("hidden");
-  setStatus(document.getElementById("bookStatus"), "");
   loadCalendar();
 }
 document.getElementById("resourceSelect").onchange = onSelectionChanged;
 document.getElementById("dateInput").onchange = onSelectionChanged;
+
+document.getElementById("todayBtn").onclick = () => {
+  document.getElementById("dateInput").value = todayUTCString();
+  onSelectionChanged();
+};
+document.getElementById("prevDayBtn").onclick = () => shiftDate(-1);
+document.getElementById("nextDayBtn").onclick = () => shiftDate(1);
+function shiftDate(delta) {
+  const input = document.getElementById("dateInput");
+  const d = new Date(input.value + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + delta);
+  input.value = d.toISOString().slice(0, 10);
+  onSelectionChanged();
+}
 
 async function loadResources() {
   const select = document.getElementById("resourceSelect");
@@ -278,14 +772,40 @@ function slotRange(dateStr, hour) {
   return { start, end };
 }
 
-async function loadCalendar() {
+function renderSkeleton(timelineEl) {
+  const wrap = document.createElement("div");
+  wrap.className = "tl-skeleton";
+  for (let i = 0; i < 6; i++) {
+    const row = document.createElement("div");
+    row.className = "tl-skeleton-row";
+    wrap.appendChild(row);
+  }
+  timelineEl.innerHTML = "";
+  timelineEl.appendChild(wrap);
+}
+
+async function loadCalendar(justBookedHour) {
   const resourceId = document.getElementById("resourceSelect").value;
   const dateStr = document.getElementById("dateInput").value;
-  const slotsEl = document.getElementById("slots");
-  slotsEl.innerHTML = "";
-  if (!resourceId || !dateStr) return;
+  const timelineEl = document.getElementById("timeline");
+  if (!resourceId || !dateStr) {
+    timelineEl.innerHTML = '<div class="empty-state">Pick a resource and date to see availability.</div>';
+    return;
+  }
 
-  const bookings = await api(`/bookings?resource_id=${resourceId}&date=${dateStr}`);
+  renderSkeleton(timelineEl);
+
+  let bookings;
+  try {
+    bookings = await api(`/bookings?resource_id=${resourceId}&date=${dateStr}`);
+  } catch (e) {
+    timelineEl.innerHTML = '<div class="empty-state">Couldn\'t load this calendar.</div>';
+    showToast(e.message, "error");
+    return;
+  }
+
+  timelineEl.innerHTML = "";
+  timelineEl.style.position = "relative";
 
   for (let hour = START_HOUR; hour < END_HOUR; hour++) {
     const { start, end } = slotRange(dateStr, hour);
@@ -295,20 +815,48 @@ async function loadCalendar() {
       (b) => new Date(b.start_time).getTime() < endMs && new Date(b.end_time).getTime() > startMs
     );
 
-    const btn = document.createElement("button");
-    btn.className = "slot" + (isBooked ? " booked" : "");
-    btn.textContent = `${String(hour).padStart(2, "0")}:00`;
-    btn.disabled = isBooked;
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "tl-row" + (isBooked ? " booked" : "");
+    if (hour === justBookedHour) row.classList.add("just-booked");
+    row.disabled = isBooked;
+
+    const time = document.createElement("span");
+    time.className = "tl-time";
+    time.textContent = `${String(hour).padStart(2, "0")}:00`;
+
+    const status = document.createElement("span");
+    status.className = "tl-status";
+    status.textContent = isBooked ? "Booked" : "Available";
+
+    const action = document.createElement("span");
+    action.className = "tl-action";
+    action.textContent = isBooked ? "🔒" : "+ Book";
+
+    row.appendChild(time);
+    row.appendChild(status);
+    row.appendChild(action);
+
     if (!isBooked) {
-      btn.onclick = () => bookSlot(resourceId, dateStr, hour, btn);
+      row.onclick = () => bookSlot(resourceId, dateStr, hour, row);
     }
-    slotsEl.appendChild(btn);
+    timelineEl.appendChild(row);
+  }
+
+  if (dateStr === todayUTCString()) {
+    const now = new Date();
+    const hourFloat = now.getUTCHours() + now.getUTCMinutes() / 60;
+    if (hourFloat >= START_HOUR && hourFloat <= END_HOUR) {
+      const line = document.createElement("div");
+      line.className = "now-line";
+      line.style.top = `${(hourFloat - START_HOUR) * 46}px`;
+      timelineEl.appendChild(line);
+    }
   }
 }
 
 async function bookSlot(resourceId, dateStr, hour, btn) {
   const { start, end } = slotRange(dateStr, hour);
-  const statusEl = document.getElementById("bookStatus");
   const idempotencyKey = crypto.randomUUID();
   const payload = {
     resource_id: Number(resourceId),
@@ -316,46 +864,44 @@ async function bookSlot(resourceId, dateStr, hour, btn) {
     end_time: end,
     idempotency_key: idempotencyKey,
   };
-  btn.disabled = true;
-  try {
-    const booking = await api("/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    setStatus(statusEl, `Booked ${String(hour).padStart(2, "0")}:00 (booking #${booking.id}).`, "ok");
-    lastBookingPayload = payload;
-    document.getElementById("resendBtn").classList.remove("hidden");
-    await loadCalendar();
-  } catch (e) {
-    setStatus(statusEl, e.status === 409 ? "That slot was just taken — refreshing." : e.message, "error");
-    btn.disabled = false;
-    await loadCalendar();
-  }
+  await withLoading(btn, async () => {
+    try {
+      const booking = await api("/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      showToast(`Booked ${String(hour).padStart(2, "0")}:00 — booking #${booking.id}.`, "ok");
+      lastBookingPayload = payload;
+      document.getElementById("resendBtn").classList.remove("hidden");
+      await loadCalendar(hour);
+    } catch (e) {
+      showToast(e.status === 409 ? "That slot was just taken — refreshing." : e.message, "error");
+      await loadCalendar();
+    }
+  });
 }
 
 document.getElementById("resendBtn").onclick = async () => {
-  const statusEl = document.getElementById("bookStatus");
+  const btn = document.getElementById("resendBtn");
   if (!lastBookingPayload) return;
-  try {
-    const booking = await api("/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(lastBookingPayload),
-    });
-    setStatus(
-      statusEl,
-      `Resent with the same idempotency key -> same booking #${booking.id} came back. No duplicate created.`,
-      "ok"
-    );
-  } catch (e) {
-    setStatus(statusEl, e.message, "error");
-  }
+  await withLoading(btn, async () => {
+    try {
+      const booking = await api("/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(lastBookingPayload),
+      });
+      showToast(`Resent with the same idempotency key -> same booking #${booking.id} came back. No duplicate created.`, "ok", 6000);
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  });
 };
 
 async function initApp(email) {
   showAuthed(email);
-  document.getElementById("dateInput").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("dateInput").value = todayUTCString();
   await loadResources();
   await loadCalendar();
 }
