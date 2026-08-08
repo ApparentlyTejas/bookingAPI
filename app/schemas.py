@@ -52,3 +52,12 @@ class BookingOut(BaseModel):
     end_time: datetime
     idempotency_key: str | None
     created_at: datetime
+
+
+class MyBookingOut(BaseModel):
+    id: int
+    resource_id: int
+    resource_name: str
+    start_time: datetime
+    end_time: datetime
+    created_at: datetime

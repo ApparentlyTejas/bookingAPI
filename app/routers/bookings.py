@@ -65,7 +65,7 @@ from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Booking, Resource, User
-from app.schemas import BookingCreate, BookingOut
+from app.schemas import BookingCreate, BookingOut, MyBookingOut
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -91,6 +91,31 @@ def list_bookings(
         .order_by(Booking.start_time)
         .all()
     )
+
+
+@router.get("/me", response_model=list[MyBookingOut])
+def list_my_bookings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    rows = (
+        db.query(Booking, Resource.name)
+        .join(Resource, Resource.id == Booking.resource_id)
+        .filter(Booking.user_id == current_user.id)
+        .order_by(Booking.start_time.desc())
+        .all()
+    )
+    return [
+        MyBookingOut(
+            id=booking.id,
+            resource_id=booking.resource_id,
+            resource_name=resource_name,
+            start_time=booking.start_time,
+            end_time=booking.end_time,
+            created_at=booking.created_at,
+        )
+        for booking, resource_name in rows
+    ]
 
 
 @router.post("", response_model=BookingOut, status_code=201)
