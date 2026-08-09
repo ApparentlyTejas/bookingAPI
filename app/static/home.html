@@ -33,6 +33,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     background:
+      radial-gradient(900px 420px at 50% -10%, rgba(180, 83, 9, 0.09), transparent 60%),
       radial-gradient(circle, rgba(23,22,15,0.07) 1px, transparent 1px) 0 0 / 22px 22px,
       var(--bg);
     color: var(--text);
@@ -43,10 +44,8 @@
 
   header {
     padding: 1rem 1.5rem;
-    background: rgba(250, 248, 244, 0.8);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
+    background: var(--ink);
+    border-bottom: 1px solid var(--ink-2);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -57,16 +56,16 @@
   .brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
   .brand-mark {
     width: 30px; height: 30px; border-radius: 8px;
-    background: var(--ink);
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
     display: flex; align-items: center; justify-content: center;
     box-shadow: var(--shadow-btn);
     flex-shrink: 0;
   }
   .brand-mark svg { width: 16px; height: 16px; }
-  .brand-name { font-size: 1.05rem; font-weight: 650; letter-spacing: -0.01em; }
+  .brand-name { font-size: 1.05rem; font-weight: 650; letter-spacing: -0.01em; color: #fff; }
   header nav { display: flex; align-items: center; gap: 1.25rem; }
-  header nav a.textlink { font-size: 0.85rem; font-weight: 600; color: var(--muted); text-decoration: none; }
-  header nav a.textlink:hover { color: var(--text); }
+  header nav a.textlink { font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.6); text-decoration: none; }
+  header nav a.textlink:hover { color: #fff; }
 
   button, a.btn {
     cursor: pointer;

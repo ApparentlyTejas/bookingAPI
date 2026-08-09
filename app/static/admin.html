@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Booking API: Admin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='5' fill='%2317160f'/%3E%3Cpath d='M8 6v3M16 6v3M4 10h16M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #faf8f4;
+    --card: #ffffff;
+    --border: #e7e2d6;
+    --text: #17160f;
+    --muted: #6f6a5c;
+    --faint: #a29c8a;
+    --ink: #17160f;
+    --ink-2: #322f24;
+    --accent: #b45309;
+    --accent-dark: #92400e;
+    --accent-soft: #fdf0e1;
+    --error-bg: #fbeeec;
+    --error-border: #e5a29a;
+    --error: #b3261e;
+    --ok-bg: #eefaf1;
+    --ok-border: #a3e4bc;
+    --ok: #0f7a4e;
+    --shadow-card: 0 1px 2px rgba(23, 22, 15, 0.05), 0 16px 32px -14px rgba(23, 22, 15, 0.18);
+    --shadow-btn: 0 1px 2px rgba(23, 22, 15, 0.15), 0 6px 14px -4px rgba(23, 22, 15, 0.28);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(900px 420px at 50% -10%, rgba(180, 83, 9, 0.09), transparent 60%),
+      radial-gradient(circle, rgba(23,22,15,0.07) 1px, transparent 1px) 0 0 / 22px 22px,
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 1rem 1.5rem;
+    background: var(--ink);
+    border-bottom: 1px solid var(--ink-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-btn);
+    flex-shrink: 0;
+  }
+  .brand-mark svg { width: 16px; height: 16px; }
+  header h1 { font-size: 1.05rem; margin: 0; font-weight: 650; letter-spacing: -0.01em; color: #fff; display: flex; align-items: center; gap: 0.6rem; }
+  .admin-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: linear-gradient(135deg, #fbbf6b, var(--accent));
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+  }
+  header nav { display: flex; align-items: center; gap: 1.1rem; }
+  header nav a { font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.65); text-decoration: none; }
+  header nav a:hover { color: #fff; }
+
+  main { max-width: 800px; margin: 0 auto; padding: 3rem 1.25rem; }
+
+  .card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-card);
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  }
+  .card-title { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.3rem; letter-spacing: -0.01em; }
+  .card-sub { font-size: 0.85rem; color: var(--muted); margin: 0 0 1.25rem; }
+
+  label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 0.35rem; }
+  input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.9rem;
+    margin-bottom: 0.85rem;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3.5px var(--accent-soft); }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: var(--ink);
+    color: white;
+    box-shadow: var(--shadow-btn);
+    transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease;
+    position: relative;
+  }
+  button:hover:not(:disabled) { transform: translateY(-1px); background: var(--ink-2); }
+  button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+  button.block { width: 100%; }
+  button.secondary { background: #fff; color: var(--ink); border: 1.5px solid var(--border); box-shadow: none; }
+  button.secondary:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); box-shadow: none; transform: none; }
+  button.danger { background: #fff; color: var(--error); border: 1.5px solid var(--error-border); box-shadow: none; }
+  button.danger:hover:not(:disabled) { background: var(--error-bg); box-shadow: none; transform: none; }
+  button.is-loading { color: transparent !important; pointer-events: none; }
+  button.is-loading::after {
+    content: "";
+    position: absolute; left: 50%; top: 50%;
+    width: 14px; height: 14px;
+    margin: -7px 0 0 -7px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .row-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #fff; }
+  .row-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .row-item:last-child { border-bottom: none; }
+  .row-main { min-width: 0; }
+  .row-title { font-weight: 650; font-size: 0.9rem; }
+  .row-sub { font-size: 0.78rem; color: var(--muted); margin-top: 0.1rem; }
+  .row-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+
+  .role-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .role-badge.admin { background: var(--accent-soft); color: var(--accent-dark); }
+  .role-badge.user { background: #f2f2f5; color: var(--faint); }
+
+  .empty-state { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
+  .status {
+    font-size: 0.85rem;
+    margin-top: 0.9rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 10px;
+    line-height: 1.4;
+    display: none;
+  }
+  .status:not(:empty) { display: block; }
+  .status.error { color: var(--error); background: var(--error-bg); border: 1px solid var(--error-border); }
+  .status.ok { color: var(--ok); background: var(--ok-bg); border: 1px solid var(--ok-border); }
+
+  #gate { text-align: center; padding: 4rem 1.5rem; color: var(--muted); }
+
+  .toasts {
+    position: fixed;
+    top: 4.75rem;
+    right: 1.1rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: min(360px, calc(100vw - 2.2rem));
+  }
+  .toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: #fff;
+    border-radius: 12px;
+    padding: 0.8rem 0.95rem;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateX(16px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .toast.show { opacity: 1; transform: translateX(0); }
+  .toast-ok { border-left-color: var(--ok); color: var(--ok); }
+  .toast-error { border-left-color: var(--error); color: var(--error); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/ui/" class="brand">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="3"/>
+        <path d="M8 2v4M16 2v4M3 9h18"/>
+      </svg>
+    </span>
+    <h1>Booking API <span class="admin-badge">Admin</span></h1>
+  </a>
+  <nav>
+    <a href="/ui/">Back to app</a>
+  </nav>
+</header>
+
+<main>
+  <div id="gate" class="hidden">
+    <p>Admin access required. <a href="/ui/" style="color: var(--accent-dark)">Go back to the app</a>.</p>
+  </div>
+
+  <div id="adminContent" class="hidden">
+    <section class="card">
+      <p class="card-title">Rooms</p>
+      <p class="card-sub">Resources bookable in the app. Rooms with existing bookings can't be deleted.</p>
+
+      <div class="row" style="display:flex; gap:0.6rem; margin-bottom:0.5rem;">
+        <input id="newResourceName" placeholder="Room name, e.g. Meeting Room B" style="flex:1; margin-bottom:0;" />
+        <button id="addResourceBtn" style="flex-shrink:0;">Add room</button>
+      </div>
+      <div id="resourceStatus" class="status"></div>
+
+      <div id="resourceList" class="row-list" style="margin-top:1rem;"></div>
+    </section>
+
+    <section class="card">
+      <p class="card-title">Users</p>
+      <p class="card-sub">Promote a user to admin, or remove admin access. You can't remove the only remaining admin.</p>
+      <div id="userStatus" class="status"></div>
+      <div id="userList" class="row-list"></div>
+    </section>
+  </div>
+</main>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<script>
+const TOKEN_KEY = "booking_api_token";
+
+function token() { return localStorage.getItem(TOKEN_KEY); }
+
+function showToast(message, kind = "ok", timeout = 4000) {
+  const container = document.getElementById("toasts");
+  const el = document.createElement("div");
+  el.className = `toast toast-${kind}`;
+  el.textContent = message;
+  container.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  const remove = () => { el.classList.remove("show"); setTimeout(() => el.remove(), 220); };
+  el.onclick = remove;
+  if (timeout) setTimeout(remove, timeout);
+}
+
+function setStatus(el, message, kind) {
+  el.textContent = message || "";
+  el.className = "status" + (kind ? " " + kind : "");
+}
+
+async function withLoading(btn, fn) {
+  btn.classList.add("is-loading");
+  btn.disabled = true;
+  try {
+    return await fn();
+  } finally {
+    btn.classList.remove("is-loading");
+    btn.disabled = false;
+  }
+}
+
+async function api(path, options = {}) {
+  const headers = options.headers || {};
+  if (token()) headers["Authorization"] = "Bearer " + token();
+  const res = await fetch(path, { ...options, headers });
+  let body = null;
+  try { body = await res.json(); } catch (e) { /* no body */ }
+  if (!res.ok) {
+    const detail = (body && body.detail) || res.statusText;
+    const err = new Error(detail);
+    err.status = res.status;
+    throw err;
+  }
+  return body;
+}
+
+let currentUserId = null;
+
+function buildResourceRow(r) {
+  const row = document.createElement("div");
+  row.className = "row-item";
+
+  const main = document.createElement("div");
+  main.className = "row-main";
+  const title = document.createElement("div");
+  title.className = "row-title";
+  title.textContent = r.name;
+  main.appendChild(title);
+  if (r.description) {
+    const sub = document.createElement("div");
+    sub.className = "row-sub";
+    sub.textContent = r.description;
+    main.appendChild(sub);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "row-actions";
+  const delBtn = document.createElement("button");
+  delBtn.type = "button";
+  delBtn.className = "danger";
+  delBtn.textContent = "Delete";
+  delBtn.onclick = () => deleteResource(r, delBtn);
+  actions.appendChild(delBtn);
+
+  row.appendChild(main);
+  row.appendChild(actions);
+  return row;
+}
+
+async function loadResources() {
+  const list = document.getElementById("resourceList");
+  let resources;
+  try {
+    resources = await api("/resources");
+  } catch (e) {
+    list.innerHTML = '<div class="empty-state">Couldn\'t load rooms.</div>';
+    return;
+  }
+  list.innerHTML = "";
+  if (resources.length === 0) {
+    list.innerHTML = '<div class="empty-state">No rooms yet — add one above.</div>';
+    return;
+  }
+  for (const r of resources) list.appendChild(buildResourceRow(r));
+}
+
+document.getElementById("addResourceBtn").onclick = async () => {
+  const btn = document.getElementById("addResourceBtn");
+  const input = document.getElementById("newResourceName");
+  const statusEl = document.getElementById("resourceStatus");
+  const name = input.value.trim();
+  if (!name) {
+    setStatus(statusEl, "Enter a room name first.", "error");
+    return;
+  }
+  await withLoading(btn, async () => {
+    try {
+      await api("/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      input.value = "";
+      setStatus(statusEl, "", "");
+      showToast(`Added "${name}".`, "ok");
+      await loadResources();
+    } catch (e) {
+      setStatus(statusEl, e.message, "error");
+    }
+  });
+};
+
+async function deleteResource(resource, btn) {
+  if (!window.confirm(`Delete "${resource.name}"? This can't be undone.`)) return;
+  await withLoading(btn, async () => {
+    try {
+      await api(`/resources/${resource.id}`, { method: "DELETE" });
+      showToast(`Deleted "${resource.name}".`, "ok");
+      await loadResources();
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  });
+}
+
+function buildUserRow(u) {
+  const row = document.createElement("div");
+  row.className = "row-item";
+
+  const main = document.createElement("div");
+  main.className = "row-main";
+  const title = document.createElement("div");
+  title.className = "row-title";
+  title.textContent = u.email;
+  main.appendChild(title);
+  const sub = document.createElement("div");
+  sub.className = "row-sub";
+  sub.textContent = new Date(u.created_at).toLocaleDateString("en-US", {
+    year: "numeric", month: "short", day: "numeric",
+  });
+  main.appendChild(sub);
+
+  const actions = document.createElement("div");
+  actions.className = "row-actions";
+
+  const badge = document.createElement("span");
+  badge.className = "role-badge " + (u.is_admin ? "admin" : "user");
+  badge.textContent = u.is_admin ? "Admin" : "User";
+  actions.appendChild(badge);
+
+  const toggleBtn = document.createElement("button");
+  toggleBtn.type = "button";
+  toggleBtn.className = "secondary";
+  toggleBtn.textContent = u.is_admin ? "Remove admin" : "Make admin";
+  toggleBtn.onclick = () => toggleUserRole(u, toggleBtn);
+  actions.appendChild(toggleBtn);
+
+  row.appendChild(main);
+  row.appendChild(actions);
+  return row;
+}
+
+async function loadUsers() {
+  const list = document.getElementById("userList");
+  let users;
+  try {
+    users = await api("/admin/users");
+  } catch (e) {
+    list.innerHTML = '<div class="empty-state">Couldn\'t load users.</div>';
+    return;
+  }
+  list.innerHTML = "";
+  for (const u of users) list.appendChild(buildUserRow(u));
+}
+
+async function toggleUserRole(user, btn) {
+  const statusEl = document.getElementById("userStatus");
+  await withLoading(btn, async () => {
+    try {
+      await api(`/admin/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_admin: !user.is_admin }),
+      });
+      showToast(`${user.email} is now ${user.is_admin ? "a regular user" : "an admin"}.`, "ok");
+      await loadUsers();
+    } catch (e) {
+      setStatus(statusEl, e.message, "error");
+    }
+  });
+}
+
+(async function boot() {
+  if (!token()) {
+    window.location.href = "/ui/";
+    return;
+  }
+  let me;
+  try {
+    me = await api("/auth/me");
+  } catch (e) {
+    window.location.href = "/ui/";
+    return;
+  }
+  currentUserId = me.id;
+  if (!me.is_admin) {
+    document.getElementById("gate").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("adminContent").classList.remove("hidden");
+  await loadResources();
+  await loadUsers();
+})();
+</script>
+
+</body>
+</html>

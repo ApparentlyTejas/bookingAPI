@@ -39,6 +39,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     background:
+      radial-gradient(900px 420px at 50% -10%, rgba(180, 83, 9, 0.09), transparent 60%),
       radial-gradient(circle, rgba(23,22,15,0.07) 1px, transparent 1px) 0 0 / 22px 22px,
       var(--bg);
     color: var(--text);
@@ -49,10 +50,8 @@
 
   header {
     padding: 1rem 1.5rem;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border);
+    background: var(--ink);
+    border-bottom: 1px solid var(--ink-2);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -65,7 +64,7 @@
     width: 30px;
     height: 30px;
     border-radius: 8px;
-    background: var(--ink);
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -73,7 +72,9 @@
     flex-shrink: 0;
   }
   .brand-mark svg { width: 16px; height: 16px; }
-  header h1 { font-size: 1.05rem; margin: 0; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
+  header h1 { font-size: 1.05rem; margin: 0; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; color: #fff; }
+  header .who-email { color: rgba(255, 255, 255, 0.65); }
+  header a.linklike { color: #fbbf6b; }
 
   .who { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
   .avatar {
@@ -106,11 +107,20 @@
   }
 
   .card {
+    position: relative;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 18px;
     box-shadow: var(--shadow-card);
     animation: fadeInUp 0.45s cubic-bezier(.2,.8,.2,1);
+    overflow: hidden;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-dark));
   }
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(10px); }
@@ -643,6 +653,7 @@
   <div id="who" class="who hidden">
     <span id="avatar" class="avatar"></span>
     <span id="whoEmail" class="who-email"></span>
+    <a class="linklike hidden" id="adminLink" href="/ui/admin.html">Admin</a>
     <a class="linklike" id="logoutLink">Log out</a>
   </div>
 </header>
@@ -1458,6 +1469,15 @@ function consumeGoogleLoginRedirect() {
   return true;
 }
 
+async function loadAdminLinkVisibility() {
+  try {
+    const me = await api("/auth/me");
+    document.getElementById("adminLink").classList.toggle("hidden", !me.is_admin);
+  } catch (e) {
+    document.getElementById("adminLink").classList.add("hidden");
+  }
+}
+
 async function initApp(email) {
   showAuthed(email);
   calendarCursor = new Date();
@@ -1466,6 +1486,7 @@ async function initApp(email) {
   await selectDate(todayUTCString());
   await loadMyBookings();
   await loadGoogleStatus();
+  await loadAdminLinkVisibility();
   checkGoogleRedirect();
 }
 
