@@ -318,6 +318,27 @@
     flex-shrink: 0;
   }
   .auth-form-panel { padding: 2.25rem 2.5rem; display: flex; flex-direction: column; justify-content: center; }
+  .gsignin-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    color: var(--text);
+  }
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.1rem 0;
+    color: var(--faint);
+    font-size: 0.78rem;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
 
   @media (max-width: 760px) {
     .auth-shell { grid-template-columns: 1fr; min-height: 0; }
@@ -387,6 +408,19 @@
   .meta-row { display: flex; align-items: center; gap: 0.55rem; font-size: 0.82rem; color: var(--muted); }
   .meta-row svg { flex-shrink: 0; color: var(--faint); }
   .booking-info .summary-row { flex-direction: column; align-items: flex-start; margin-top: 1.1rem; }
+
+  .gcal-section { margin-top: 1.1rem; }
+  .gcal-connect-btn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.82rem; }
+  .gcal-connected {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--ok);
+  }
+  .gcal-connected svg { flex-shrink: 0; }
+  .gcal-connected .linklike { color: var(--muted); font-weight: 600; font-size: 0.78rem; }
 
   .booking-calendar { min-width: 0; }
   .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
@@ -524,6 +558,33 @@
   }
   .mb-badge.upcoming { background: var(--accent-soft); color: var(--accent-dark); }
   .mb-badge.past { background: #f2f2f5; color: var(--faint); }
+  .mb-right { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
+  .mb-actions { display: flex; gap: 0.35rem; }
+  .mb-action-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 7px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    color: var(--muted);
+    box-shadow: none;
+  }
+  .mb-action-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+    box-shadow: none;
+    transform: none;
+  }
+  .mb-cancel-btn:hover {
+    border-color: var(--error);
+    color: var(--error);
+    background: var(--error-bg);
+  }
 
   /* ---- Toasts ---- */
   .toasts {
@@ -603,6 +664,17 @@
       </ul>
     </div>
     <div class="auth-form-panel">
+      <button type="button" class="secondary block gsignin-btn" id="googleSignInBtn">
+        <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+          <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+          <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+          <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <div class="auth-divider"><span>or</span></div>
+
       <div id="loginForm">
         <p class="card-title">Welcome back</p>
         <label for="loginEmail">Email</label>
@@ -654,6 +726,18 @@
           </div>
         </div>
         <div id="summaryRow" class="summary-row"></div>
+
+        <div id="gcalSection" class="gcal-section">
+          <button type="button" class="secondary block gcal-connect-btn hidden" id="gcalConnectBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M12 14v6M9 17h6"/></svg>
+            Connect Google Calendar
+          </button>
+          <div class="gcal-connected hidden" id="gcalConnectedRow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Google Calendar connected
+            <a class="linklike" id="gcalDisconnectBtn">Disconnect</a>
+          </div>
+        </div>
       </aside>
 
       <div class="booking-calendar">
@@ -881,6 +965,55 @@ function formatClockTime(isoString) {
     hour12: false,
     timeZone: DISPLAY_TZ,
   });
+}
+
+function toIcsDateTime(isoString) {
+  return new Date(isoString).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+}
+
+function icsEscape(text) {
+  return String(text)
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n");
+}
+
+function googleCalendarUrl(resourceName, startIso, endIso) {
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `${resourceName} booking`,
+    dates: `${toIcsDateTime(startIso)}/${toIcsDateTime(endIso)}`,
+    details: "Booked via Booking API",
+    ctz: "Europe/Berlin",
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function downloadIcs(bookingId, resourceName, startIso, endIso) {
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Booking API//EN",
+    "BEGIN:VEVENT",
+    `UID:booking-${bookingId}@booking-api`,
+    `DTSTAMP:${toIcsDateTime(new Date().toISOString())}`,
+    `DTSTART:${toIcsDateTime(startIso)}`,
+    `DTEND:${toIcsDateTime(endIso)}`,
+    `SUMMARY:${icsEscape(resourceName + " booking")}`,
+    `DESCRIPTION:${icsEscape("Booked via Booking API")}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+  const blob = new Blob([ics], { type: "text/calendar" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `booking-${bookingId}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function renderMonthCalendar() {
@@ -1131,9 +1264,77 @@ function buildBookingRow(b, isPast) {
   badge.className = "mb-badge " + (isPast ? "past" : "upcoming");
   badge.textContent = isPast ? "Past" : "Upcoming";
 
+  const right = document.createElement("div");
+  right.className = "mb-right";
+
+  if (!isPast) {
+    const actions = document.createElement("div");
+    actions.className = "mb-actions";
+
+    const gcalLink = document.createElement("a");
+    gcalLink.href = googleCalendarUrl(b.resource_name, b.start_time, b.end_time);
+    gcalLink.target = "_blank";
+    gcalLink.rel = "noopener";
+    gcalLink.className = "mb-action-btn";
+    gcalLink.title = "Add to Google Calendar";
+    gcalLink.setAttribute("aria-label", "Add to Google Calendar");
+    gcalLink.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18M12 14v6M9 17h6"/></svg>';
+
+    const icsBtn = document.createElement("button");
+    icsBtn.type = "button";
+    icsBtn.className = "mb-action-btn";
+    icsBtn.title = "Download .ics for other calendar apps";
+    icsBtn.setAttribute("aria-label", "Download .ics file");
+    icsBtn.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16"/></svg>';
+    icsBtn.onclick = () => downloadIcs(b.id, b.resource_name, b.start_time, b.end_time);
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.type = "button";
+    cancelBtn.className = "mb-action-btn mb-cancel-btn";
+    cancelBtn.title = "Cancel this booking";
+    cancelBtn.setAttribute("aria-label", "Cancel this booking");
+    cancelBtn.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+    cancelBtn.onclick = () => cancelBooking(b, cancelBtn);
+
+    actions.appendChild(gcalLink);
+    actions.appendChild(icsBtn);
+    actions.appendChild(cancelBtn);
+    right.appendChild(actions);
+  }
+  right.appendChild(badge);
+
   row.appendChild(info);
-  row.appendChild(badge);
+  row.appendChild(right);
   return row;
+}
+
+async function cancelBooking(b, btn) {
+  const dateLabel = new Date(b.start_time).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: DISPLAY_TZ,
+  });
+  const confirmed = window.confirm(
+    `Cancel your booking for ${b.resource_name} on ${dateLabel} at ${formatClockTime(b.start_time)}?`
+  );
+  if (!confirmed) return;
+
+  await withLoading(btn, async () => {
+    try {
+      await api(`/bookings/${b.id}`, { method: "DELETE" });
+      showToast("Booking cancelled.", "ok");
+      await loadMyBookings();
+      if (selectedDateStr === b.start_time.slice(0, 10)) {
+        await loadTimesForDate(selectedDateStr);
+      }
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  });
 }
 
 async function loadMyBookings() {
@@ -1171,6 +1372,92 @@ async function loadMyBookings() {
   listEl.appendChild(wrap);
 }
 
+async function loadGoogleStatus() {
+  const connectBtn = document.getElementById("gcalConnectBtn");
+  const connectedRow = document.getElementById("gcalConnectedRow");
+  try {
+    const { connected } = await api("/auth/google/status");
+    connectBtn.classList.toggle("hidden", connected);
+    connectedRow.classList.toggle("hidden", !connected);
+  } catch (e) {
+    connectBtn.classList.add("hidden");
+    connectedRow.classList.add("hidden");
+  }
+}
+
+document.getElementById("gcalConnectBtn").onclick = async () => {
+  const btn = document.getElementById("gcalConnectBtn");
+  await withLoading(btn, async () => {
+    try {
+      const { authorize_url } = await api("/auth/google/connect");
+      window.location.href = authorize_url;
+    } catch (e) {
+      showToast(
+        e.status === 503 ? "Google Calendar isn't configured on this server yet." : e.message,
+        "error"
+      );
+    }
+  });
+};
+
+document.getElementById("gcalDisconnectBtn").onclick = async () => {
+  try {
+    await api("/auth/google/disconnect", { method: "POST" });
+    showToast("Disconnected from Google Calendar.", "ok");
+    await loadGoogleStatus();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+};
+
+document.getElementById("googleSignInBtn").onclick = async () => {
+  const btn = document.getElementById("googleSignInBtn");
+  await withLoading(btn, async () => {
+    try {
+      const { authorize_url } = await api("/auth/google/login");
+      window.location.href = authorize_url;
+    } catch (e) {
+      showToast(
+        e.status === 503 ? "Google sign-in isn't configured on this server yet." : e.message,
+        "error"
+      );
+    }
+  });
+};
+
+function checkGoogleRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has("google_connected")) return;
+  const ok = params.get("google_connected") === "1";
+  showToast(ok ? "Google Calendar connected." : "Couldn't connect Google Calendar.", ok ? "ok" : "error");
+  params.delete("google_connected");
+  const query = params.toString();
+  window.history.replaceState({}, "", window.location.pathname + (query ? `?${query}` : ""));
+}
+
+// A "Sign in with Google" redirect lands back here with the JWT as a query
+// param (there's no way to attach an Authorization header to a plain
+// browser redirect) rather than a fetch() response — pick it up and store
+// it exactly like a normal login. Consumes google_connected too, so
+// checkGoogleRedirect() doesn't also fire a redundant toast for the same
+// redirect (this flow shows its own "Signed in with Google" toast instead).
+function consumeGoogleLoginRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  const loginToken = params.get("login_token");
+  const email = params.get("email");
+  if (!loginToken || !email) return false;
+
+  localStorage.setItem(TOKEN_KEY, loginToken);
+  localStorage.setItem(TOKEN_EMAIL_KEY, email);
+
+  params.delete("login_token");
+  params.delete("email");
+  params.delete("google_connected");
+  const query = params.toString();
+  window.history.replaceState({}, "", window.location.pathname + (query ? `?${query}` : ""));
+  return true;
+}
+
 async function initApp(email) {
   showAuthed(email);
   calendarCursor = new Date();
@@ -1178,13 +1465,20 @@ async function initApp(email) {
   await loadResources();
   await selectDate(todayUTCString());
   await loadMyBookings();
+  await loadGoogleStatus();
+  checkGoogleRedirect();
 }
 
 (function boot() {
+  const freshGoogleLogin = consumeGoogleLoginRedirect();
   const t = token();
   const email = localStorage.getItem(TOKEN_EMAIL_KEY);
   if (t && email) {
-    initApp(email).catch(() => showLoggedOut());
+    initApp(email)
+      .then(() => {
+        if (freshGoogleLogin) showToast("Signed in with Google.", "ok");
+      })
+      .catch(() => showLoggedOut());
   } else {
     showLoggedOut();
   }
