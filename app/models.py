@@ -9,7 +9,11 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False, index=True)
-    hashed_password = Column(String, nullable=False)
+    # Nullable: accounts created via "Sign in with Google" have no password
+    # at all (there's nothing to hash) — login.py must check for this
+    # before calling verify_password, not just let it fail.
+    hashed_password = Column(String, nullable=True)
+    google_refresh_token = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -31,4 +35,5 @@ class Booking(Base):
     start_time = Column(DateTime(timezone=True), nullable=False)
     end_time = Column(DateTime(timezone=True), nullable=False)
     idempotency_key = Column(String, nullable=True)
+    google_event_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

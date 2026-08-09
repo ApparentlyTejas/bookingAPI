@@ -53,6 +53,12 @@ from step 5. The retry loop stays as defense in depth for the no-key /
 different-key overlap case, which can still hit the same two failure modes
 under heavy concurrency, just far less often since real overlaps (not
 self-duplicates) are the much rarer case in practice.
+
+create_booking() also best-effort syncs to Google Calendar if the user has
+connected one (see app/google_calendar.py, app/routers/google_calendar.py),
+and cancel_booking() reverses that. Both treat the Google API as a
+convenience layered on top of the booking guarantee, never allowed to affect
+whether a booking succeeds/is cancelled.
 """
 
 from datetime import date, datetime, time, timedelta, timezone
@@ -62,6 +68,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
+from app import crypto, google_calendar as gcal
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Booking, Resource, User
@@ -196,4 +203,49 @@ def create_booking(
                 status_code=503, detail="High contention booking this resource, please retry"
             )
         db.refresh(booking)
+
+        if current_user.google_refresh_token:
+            # Best-effort: Google Calendar sync is a convenience layered on
+            # top of the booking guarantee, not part of it. Any failure here
+            # (network, revoked/expired token, quota) must never surface as
+            # a failed booking — the booking already committed above.
+            try:
+                event_id = gcal.create_event(
+                    crypto.decrypt(current_user.google_refresh_token),
+                    summary=f"{resource.name} booking",
+                    description="Booked via Booking API",
+                    start=booking.start_time,
+                    end=booking.end_time,
+                )
+                booking.google_event_id = event_id
+                db.commit()
+            except Exception:
+                pass
+
         return booking
+
+
+@router.delete("/{booking_id}", status_code=204)
+def cancel_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only cancel your own bookings")
+    if booking.end_time <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Can't cancel a booking that has already passed")
+
+    if booking.google_event_id and current_user.google_refresh_token:
+        # Same best-effort contract as sync-on-create: a Google failure here
+        # must not block cancelling the actual booking.
+        try:
+            gcal.delete_event(crypto.decrypt(current_user.google_refresh_token), booking.google_event_id)
+        except Exception:
+            pass
+
+    db.delete(booking)
+    db.commit()

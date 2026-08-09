@@ -19,6 +19,14 @@ Then apply the schema manually (not auto-run — see CLAUDE.md conventions):
 docker compose exec db psql -U app -d bookingapi -f /db/001_schema.sql
 docker compose exec db psql -U app -d bookingapi -f /db/002_add_exclusion_constraint.sql
 docker compose exec db psql -U app -d bookingapi -f /db/003_add_idempotency_key.sql
+docker compose exec db psql -U app -d bookingapi -f /db/004_add_google_calendar.sql
+```
+
+Before first run, generate real secrets for `.env` (the checked-in placeholders are dev-only and must not be used anywhere reachable by anyone else):
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"        # -> JWT_SECRET_KEY
+python3 -c "import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"  # -> TOKEN_ENCRYPTION_KEY
 ```
 
 Check it's up:
@@ -87,3 +95,65 @@ bottom of `db/001_schema.sql`:
 ```bash
 docker compose exec db psql -U app -d bookingapi
 ```
+
+## Google Calendar sync
+
+Optional. When connected, every booking is silently synced to the user's
+Google Calendar (and un-synced on cancel), so Google's own reminder system
+handles notifying them — no email infra of our own. It's entirely
+best-effort: any Google API failure is caught and logged nowhere, on
+purpose, since it must never affect whether a booking succeeds/cancels.
+
+Two ways to connect, same underlying OAuth setup:
+- **"Sign in with Google"** on the login screen — for a new visitor, this
+  authenticates them (creating an account if their Google email isn't
+  registered yet, password field left empty) *and* connects calendar sync
+  in one consent screen.
+- **"Connect Google Calendar"** in the app sidebar — for a user who's
+  already logged in (password or Google) and just wants to add calendar
+  sync without changing how they log in.
+
+To enable either:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a
+   project (or use an existing one).
+2. **APIs & Services > Library** — enable the **Google Calendar API**.
+3. **APIs & Services > OAuth consent screen** — choose **External**,
+   fill in the required fields (app name, your email). While in "Testing"
+   mode you'll need to add your own Google account under **Test users** —
+   only those accounts can complete the consent flow until the app is
+   published/verified, which isn't needed for personal/small-group use.
+4. **APIs & Services > Credentials > Create Credentials > OAuth client ID**
+   — type **Web application**. Add an authorized redirect URI matching
+   `GOOGLE_REDIRECT_URI` below exactly (`http://localhost:8000/auth/google/callback`
+   for local dev; update this — and re-add it here — when you deploy).
+5. Copy the generated **Client ID** and **Client secret** into `.env`:
+   ```bash
+   GOOGLE_CLIENT_ID=...
+   GOOGLE_CLIENT_SECRET=...
+   ```
+6. Restart the API (`docker compose up --build -d api`) — both "Sign in
+   with Google" and "Connect Google Calendar" work from there.
+
+Leaving `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` blank disables the
+integration cleanly — `/auth/google/login` and `/auth/google/connect` both
+return 503, surfaced in the UI as a toast rather than a broken redirect.
+
+## Security notes
+
+- **Rate limited**: `/auth/login` (10/min) and `/auth/register` (5/min) per
+  IP, via `slowapi` — see `app/rate_limit.py`.
+- **Passwords**: bcrypt-hashed (never stored/logged in plaintext), minimum
+  8 characters enforced at the schema level (`app/schemas.py`).
+- **Google refresh tokens**: encrypted at rest (Fernet, `app/crypto.py`) —
+  a database leak alone doesn't hand out live Calendar access. Requires
+  `TOKEN_ENCRYPTION_KEY` to be set; if it changes, previously-connected
+  users' tokens become undecryptable and they'll need to reconnect.
+- **JWT secret**: must be a real random value in any environment other
+  users can reach — see the placeholder warning in `.env.example`.
+- Known gaps, if this goes further: no email verification on registration
+  (anyone can register with any email address without proving they own it),
+  and auth tokens live in `localStorage` rather than an httpOnly cookie
+  (standard XSS-vs-CSRF tradeoff for a Bearer-token API; fine as long as
+  there's no way to inject arbitrary script, which the app avoids by never
+  rendering user-supplied strings via `innerHTML`).
