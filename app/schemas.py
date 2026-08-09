@@ -13,6 +13,7 @@ class UserOut(BaseModel):
 
     id: int
     email: EmailStr
+    is_admin: bool
     created_at: datetime
 
 
@@ -61,3 +62,7 @@ class MyBookingOut(BaseModel):
     start_time: datetime
     end_time: datetime
     created_at: datetime
+
+
+class AdminUserRoleUpdate(BaseModel):
+    is_admin: bool

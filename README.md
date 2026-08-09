@@ -58,10 +58,27 @@ curl -X POST http://localhost:8000/auth/login \
 # -> {"access_token": "...", "token_type": "bearer"}
 ```
 
+## Admin access
+
+Creating/deleting rooms (`POST`/`DELETE /resources`) and promoting other
+users requires `is_admin`, which defaults to `false` for everyone — nobody
+is an admin until someone makes them one. Bootstrap the first admin
+directly in the database (there's no other way in, by design — an API
+endpoint that could self-promote would defeat the point):
+
+```bash
+docker compose exec db psql -U app -d bookingapi \
+  -c "UPDATE users SET is_admin = true WHERE email = 'you@example.com';"
+```
+
+From there, that account can promote/demote anyone else from `/ui/admin.html`
+(linked in the header once logged in as an admin) — no more manual SQL
+needed. The API refuses to demote the last remaining admin.
+
 ## Create a resource and a booking
 
 ```bash
-TOKEN="<access_token from login>"
+TOKEN="<access_token from an admin account>"
 
 curl -X POST http://localhost:8000/resources \
   -H "Authorization: Bearer $TOKEN" \
@@ -69,6 +86,7 @@ curl -X POST http://localhost:8000/resources \
   -d '{"name": "Meeting Room A"}'
 # -> {"id": 1, ...}
 
+TOKEN="<access_token from any account>"
 curl -X POST http://localhost:8000/bookings \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
