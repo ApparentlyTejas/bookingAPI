@@ -1,5 +1,5 @@
 """
-Load test for the naive check-then-insert /bookings endpoint (CLAUDE.md step 3).
+Load test for the naive check-then-insert /bookings endpoint.
 
 All simulated users log in as the same test account and POST the *same*
 resource_id + start_time/end_time window, so requests race for the exact

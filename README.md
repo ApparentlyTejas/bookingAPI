@@ -1,7 +1,8 @@
 # booking-api
 
-Concurrency-safe resource booking API. See [CLAUDE.md](./CLAUDE.md) for the
-project story and build plan.
+Concurrency-safe resource booking API: found a double-booking race under
+load, fixed it two different ways (row lock, then a Postgres exclusion
+constraint), and load-tested both to compare correctness and throughput.
 
 Note: Postgres is exposed on host port **5434** (not 5432), since a native
 Postgres was already using 5432 (and 5433) on this machine. `docker compose
@@ -13,7 +14,7 @@ exec` commands below go straight into the container and are unaffected.
 docker compose up --build
 ```
 
-Then apply the schema manually (not auto-run — see CLAUDE.md conventions):
+Then apply the schema manually (not auto-run via `Base.metadata.create_all()`):
 
 ```bash
 docker compose exec db psql -U app -d bookingapi -f /db/001_schema.sql

@@ -1,6 +1,5 @@
 """
-ACTIVE: step 5 fix attempt 2 (Postgres EXCLUDE constraint) + step 6
-idempotency key (see CLAUDE.md build plan).
+ACTIVE: fix attempt 2 (Postgres EXCLUDE constraint) + idempotency key.
 
 create_booking() no longer locks the resource row app-side. The overlap
 SELECT below is now just an optimistic fast-path (cheap, saves a round trip

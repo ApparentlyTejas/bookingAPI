@@ -1,8 +1,8 @@
 """
-Automates the manual verification from CLAUDE.md's build plan (step 3's
-Locust load test + the psql overlap-check query) as a real pytest test:
-race N concurrent identical requests at the same slot and assert exactly
-one wins, using nothing but the bookings_no_overlap EXCLUDE constraint from
+Automates the manual verification from the original load test (the Locust
+run + the psql overlap-check query) as a real pytest test: race N
+concurrent identical requests at the same slot and assert exactly one
+wins, using nothing but the bookings_no_overlap EXCLUDE constraint from
 db/002_add_exclusion_constraint.sql — no app-level lock.
 
 This is the test that actually proves the concurrency story, not just the

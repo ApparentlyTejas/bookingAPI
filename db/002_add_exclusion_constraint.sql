@@ -1,8 +1,8 @@
 -- Applied manually (not via SQLAlchemy create_all()):
 --   docker compose exec db psql -U app -d bookingapi -f /db/002_add_exclusion_constraint.sql
 --
--- Fix attempt 2 (CLAUDE.md step 5): instead of locking the resource row
--- app-side before every insert (step 4), let Postgres reject overlapping
+-- Fix attempt 2: instead of locking the resource row app-side before
+-- every insert (fix attempt 1), let Postgres reject overlapping
 -- bookings at the database level. An EXCLUDE constraint on
 -- (resource_id, tsrange(start_time, end_time)) makes any two rows with the
 -- same resource_id and overlapping time ranges mutually exclusive — the
