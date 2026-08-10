@@ -98,6 +98,21 @@ curl "http://localhost:8000/bookings?resource_id=1&date=2026-09-01" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
+## Running tests
+
+```bash
+docker compose exec api pytest -v
+```
+
+Runs against a throwaway `bookingapi_test` database in the same Postgres
+container (dropped and recreated each run, with all `db/*.sql` migrations
+applied) — not SQLite, since the whole point of `test_concurrency.py` is to
+prove the actual `EXCLUDE` constraint and advisory-lock behavior work, which
+a non-Postgres test double couldn't exercise. That file races 20 concurrent
+identical requests at the same slot and asserts exactly one wins, zero
+overlaps land in the database — the automated version of the manual Locust
+load test below.
+
 ## Load test (step 3 — reproduce the race condition)
 
 ```bash
