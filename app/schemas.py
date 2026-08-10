@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
@@ -25,6 +26,8 @@ class Token(BaseModel):
 class ResourceCreate(BaseModel):
     name: str
     description: str | None = None
+    capacity: int | None = Field(default=None, gt=0)
+    amenities: list[str] = []
 
 
 class ResourceOut(BaseModel):
@@ -33,6 +36,8 @@ class ResourceOut(BaseModel):
     id: int
     name: str
     description: str | None
+    capacity: int | None
+    amenities: list[str]
     created_at: datetime
 
 
@@ -41,6 +46,11 @@ class BookingCreate(BaseModel):
     start_time: datetime
     end_time: datetime
     idempotency_key: str | None = None
+
+
+class BookingUpdate(BaseModel):
+    start_time: datetime
+    end_time: datetime
 
 
 class BookingOut(BaseModel):
@@ -52,6 +62,7 @@ class BookingOut(BaseModel):
     start_time: datetime
     end_time: datetime
     idempotency_key: str | None
+    series_id: UUID | None
     created_at: datetime
 
 
@@ -61,7 +72,23 @@ class MyBookingOut(BaseModel):
     resource_name: str
     start_time: datetime
     end_time: datetime
+    series_id: UUID | None
     created_at: datetime
+
+
+class RecurringBookingCreate(BaseModel):
+    resource_id: int
+    start_time: datetime
+    end_time: datetime
+    # Weekly is the only frequency for now — the recurring-bookings story is
+    # "book my weekly study group slot," not a general RRULE engine.
+    occurrences: int = Field(ge=2, le=52)
+
+
+class RecurringBookingResult(BaseModel):
+    series_id: UUID
+    created: list[BookingOut]
+    skipped: list[dict]
 
 
 class AdminUserRoleUpdate(BaseModel):

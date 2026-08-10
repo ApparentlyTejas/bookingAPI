@@ -15,7 +15,12 @@ def create_resource(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    resource = Resource(name=payload.name, description=payload.description)
+    resource = Resource(
+        name=payload.name,
+        description=payload.description,
+        capacity=payload.capacity,
+        amenities=payload.amenities,
+    )
     db.add(resource)
     db.commit()
     db.refresh(resource)

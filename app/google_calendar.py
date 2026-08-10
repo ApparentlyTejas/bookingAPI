@@ -142,6 +142,20 @@ def create_event(
     return resp.json()["id"]
 
 
+def update_event(refresh_token: str, event_id: str, start: datetime, end: datetime) -> None:
+    access_token = _get_access_token(refresh_token)
+    resp = requests.patch(
+        f"{GOOGLE_CALENDAR_EVENTS_URL}/{event_id}",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "start": {"dateTime": start.isoformat()},
+            "end": {"dateTime": end.isoformat()},
+        },
+        timeout=10,
+    )
+    resp.raise_for_status()
+
+
 def delete_event(refresh_token: str, event_id: str) -> None:
     access_token = _get_access_token(refresh_token)
     resp = requests.delete(
