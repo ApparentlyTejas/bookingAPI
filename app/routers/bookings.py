@@ -62,6 +62,7 @@ whether a booking succeeds/is cancelled.
 """
 
 from datetime import date, datetime, time, timedelta, timezone
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
@@ -72,7 +73,14 @@ from app import crypto, google_calendar as gcal
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import Booking, Resource, User
-from app.schemas import BookingCreate, BookingOut, MyBookingOut
+from app.schemas import (
+    BookingCreate,
+    BookingOut,
+    BookingUpdate,
+    MyBookingOut,
+    RecurringBookingCreate,
+    RecurringBookingResult,
+)
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -119,6 +127,7 @@ def list_my_bookings(
             resource_name=resource_name,
             start_time=booking.start_time,
             end_time=booking.end_time,
+            series_id=booking.series_id,
             created_at=booking.created_at,
         )
         for booking, resource_name in rows
@@ -219,6 +228,194 @@ def create_booking(
                 )
                 booking.google_event_id = event_id
                 db.commit()
+            except Exception:
+                pass
+
+        return booking
+
+
+@router.post("/recurring", response_model=RecurringBookingResult, status_code=201)
+def create_recurring_booking(
+    payload: RecurringBookingCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Creates `occurrences` weekly bookings starting at payload.start_time, all
+    tagged with one series_id. Each occurrence goes through the exact same
+    overlap-check + EXCLUDE-constraint + retry loop as a single POST
+    /bookings — recurrence has no special claim on a slot. A slot that's
+    already taken (someone else booked that week, or a holiday closure) is
+    reported back as `skipped` rather than aborting the whole series: partial
+    success is the useful behavior for "book my weekly 5pm slot" — the user
+    wants the 11 free weeks, not an all-or-nothing failure because week 6 is
+    taken.
+    """
+    if payload.end_time <= payload.start_time:
+        raise HTTPException(status_code=422, detail="end_time must be after start_time")
+
+    resource = db.query(Resource).filter(Resource.id == payload.resource_id).first()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+
+    series_id = uuid4()
+    created: list[Booking] = []
+    skipped: list[dict] = []
+
+    for i in range(payload.occurrences):
+        occ_start = payload.start_time + timedelta(weeks=i)
+        occ_end = payload.end_time + timedelta(weeks=i)
+
+        for attempt in range(_MAX_ATTEMPTS):
+            overlap = (
+                db.query(Booking)
+                .filter(
+                    Booking.resource_id == payload.resource_id,
+                    Booking.start_time < occ_end,
+                    Booking.end_time > occ_start,
+                )
+                .first()
+            )
+            if overlap:
+                skipped.append({"start_time": occ_start, "reason": "Resource already booked for this time"})
+                break
+
+            booking = Booking(
+                resource_id=payload.resource_id,
+                user_id=current_user.id,
+                start_time=occ_start,
+                end_time=occ_end,
+                series_id=series_id,
+            )
+            db.add(booking)
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                if attempt < _MAX_ATTEMPTS - 1:
+                    continue
+                skipped.append({"start_time": occ_start, "reason": "Resource already booked for this time"})
+                break
+            except OperationalError:
+                db.rollback()
+                if attempt < _MAX_ATTEMPTS - 1:
+                    continue
+                skipped.append({"start_time": occ_start, "reason": "High contention, please retry this week separately"})
+                break
+            db.refresh(booking)
+            created.append(booking)
+
+            if current_user.google_refresh_token:
+                try:
+                    event_id = gcal.create_event(
+                        crypto.decrypt(current_user.google_refresh_token),
+                        summary=f"{resource.name} booking",
+                        description="Booked via Booking API",
+                        start=booking.start_time,
+                        end=booking.end_time,
+                    )
+                    booking.google_event_id = event_id
+                    db.commit()
+                except Exception:
+                    pass
+
+            break
+
+    return RecurringBookingResult(series_id=series_id, created=created, skipped=skipped)
+
+
+@router.delete("/series/{series_id}", status_code=204)
+def cancel_booking_series(
+    series_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bookings = (
+        db.query(Booking)
+        .filter(Booking.series_id == series_id, Booking.user_id == current_user.id)
+        .all()
+    )
+    if not bookings:
+        raise HTTPException(status_code=404, detail="Booking series not found")
+
+    now = datetime.now(timezone.utc)
+    for booking in bookings:
+        if booking.end_time <= now:
+            continue  # leave past occurrences in history, only cancel future ones
+        if booking.google_event_id and current_user.google_refresh_token:
+            try:
+                gcal.delete_event(crypto.decrypt(current_user.google_refresh_token), booking.google_event_id)
+            except Exception:
+                pass
+        db.delete(booking)
+    db.commit()
+
+
+@router.patch("/{booking_id}", response_model=BookingOut)
+def update_booking(
+    booking_id: int,
+    payload: BookingUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if payload.end_time <= payload.start_time:
+        raise HTTPException(status_code=422, detail="end_time must be after start_time")
+    if payload.end_time <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Can't move a booking to a time in the past")
+
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit your own bookings")
+    if booking.end_time <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Can't edit a booking that has already passed")
+
+    # Same "optimistic SELECT + EXCLUDE constraint as guarantee" pattern as
+    # create_booking — Postgres checks the constraint on UPDATE just like
+    # INSERT, so moving a booking into another one's slot fails the same
+    # way. Excludes its own row from the fast-path check (it will always
+    # "overlap" itself under the old time range otherwise).
+    for attempt in range(_MAX_ATTEMPTS):
+        overlap = (
+            db.query(Booking)
+            .filter(
+                Booking.id != booking_id,
+                Booking.resource_id == booking.resource_id,
+                Booking.start_time < payload.end_time,
+                Booking.end_time > payload.start_time,
+            )
+            .first()
+        )
+        if overlap:
+            raise HTTPException(status_code=409, detail="Resource already booked for this time")
+
+        booking.start_time = payload.start_time
+        booking.end_time = payload.end_time
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            if attempt < _MAX_ATTEMPTS - 1:
+                continue
+            raise HTTPException(status_code=409, detail="Resource already booked for this time")
+        except OperationalError:
+            db.rollback()
+            if attempt < _MAX_ATTEMPTS - 1:
+                continue
+            raise HTTPException(
+                status_code=503, detail="High contention updating this booking, please retry"
+            )
+        db.refresh(booking)
+
+        if booking.google_event_id and current_user.google_refresh_token:
+            try:
+                gcal.update_event(
+                    crypto.decrypt(current_user.google_refresh_token),
+                    booking.google_event_id,
+                    booking.start_time,
+                    booking.end_time,
+                )
             except Exception:
                 pass
 
