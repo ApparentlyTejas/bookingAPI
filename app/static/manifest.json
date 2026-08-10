@@ -1,0 +1,14 @@
+{
+  "name": "Booking API",
+  "short_name": "Booking",
+  "description": "Book shared resources without double-booking.",
+  "start_url": "/ui/",
+  "scope": "/ui/",
+  "display": "standalone",
+  "background_color": "#faf8f4",
+  "theme_color": "#17160f",
+  "icons": [
+    { "src": "/ui/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/ui/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
