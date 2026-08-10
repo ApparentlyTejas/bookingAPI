@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Booking API: Admin</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='5' fill='%2317160f'/%3E%3Cpath d='M8 6v3M16 6v3M4 10h16M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E" />
+<link rel="manifest" href="/ui/manifest.json" />
+<meta name="theme-color" content="#17160f" />
+<script>
+  (function () {
+    var saved = localStorage.getItem("booking_api_theme");
+    if (saved === "light" || saved === "dark") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  })();
+</script>
 <style>
   :root {
     --bg: #faf8f4;
@@ -24,8 +34,55 @@
     --ok-bg: #eefaf1;
     --ok-border: #a3e4bc;
     --ok: #0f7a4e;
+    --surface-2: #f7f4ee;
     --shadow-card: 0 1px 2px rgba(23, 22, 15, 0.05), 0 16px 32px -14px rgba(23, 22, 15, 0.18);
     --shadow-btn: 0 1px 2px rgba(23, 22, 15, 0.15), 0 6px 14px -4px rgba(23, 22, 15, 0.28);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #100f0c;
+      --card: #1b1916;
+      --border: #38332a;
+      --text: #f2ede2;
+      --muted: #a9a08c;
+      --faint: #756e5c;
+      --ink: #24221a;
+      --ink-2: #34301f;
+      --accent: #e0902f;
+      --accent-dark: #c2760f;
+      --accent-soft: rgba(224, 144, 47, 0.16);
+      --error-bg: rgba(229, 162, 154, 0.14);
+      --error-border: #e5a29a;
+      --error: #f37268;
+      --ok-bg: rgba(163, 228, 188, 0.14);
+      --ok-border: #a3e4bc;
+      --ok: #4ade80;
+      --surface-2: #232019;
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 32px -14px rgba(0, 0, 0, 0.6);
+      --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 14px -4px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #100f0c;
+    --card: #1b1916;
+    --border: #38332a;
+    --text: #f2ede2;
+    --muted: #a9a08c;
+    --faint: #756e5c;
+    --ink: #24221a;
+    --ink-2: #34301f;
+    --accent: #e0902f;
+    --accent-dark: #c2760f;
+    --accent-soft: rgba(224, 144, 47, 0.16);
+    --error-bg: rgba(229, 162, 154, 0.14);
+    --error-border: #e5a29a;
+    --error: #f37268;
+    --ok-bg: rgba(163, 228, 188, 0.14);
+    --ok-border: #a3e4bc;
+    --ok: #4ade80;
+    --surface-2: #232019;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 32px -14px rgba(0, 0, 0, 0.6);
+    --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 14px -4px rgba(0, 0, 0, 0.6);
   }
   * { box-sizing: border-box; }
   body {
@@ -75,6 +132,28 @@
   header nav { display: flex; align-items: center; gap: 1.1rem; }
   header nav a { font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.65); text-decoration: none; }
   header nav a:hover { color: #fff; }
+  .theme-toggle-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.85);
+    box-shadow: none;
+    border-radius: 9px;
+  }
+  .theme-toggle-btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); transform: none; box-shadow: none; }
+  .theme-toggle-btn .icon-moon { display: none; }
+  :root[data-theme="dark"] .theme-toggle-btn .icon-sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle-btn .icon-moon { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle-btn .icon-sun { display: none; }
+    :root:not([data-theme="light"]) .theme-toggle-btn .icon-moon { display: block; }
+  }
 
   main { max-width: 800px; margin: 0 auto; padding: 3rem 1.25rem; }
 
@@ -106,7 +185,7 @@
     border-radius: 10px;
     font-size: 0.9rem;
     margin-bottom: 0.85rem;
-    background: #fff;
+    background: var(--card);
     color: var(--text);
     font-family: inherit;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -130,9 +209,9 @@
   button:hover:not(:disabled) { transform: translateY(-1px); background: var(--ink-2); }
   button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
   button.block { width: 100%; }
-  button.secondary { background: #fff; color: var(--ink); border: 1.5px solid var(--border); box-shadow: none; }
+  button.secondary { background: var(--card); color: var(--text); border: 1.5px solid var(--border); box-shadow: none; }
   button.secondary:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); box-shadow: none; transform: none; }
-  button.danger { background: #fff; color: var(--error); border: 1.5px solid var(--error-border); box-shadow: none; }
+  button.danger { background: var(--card); color: var(--error); border: 1.5px solid var(--error-border); box-shadow: none; }
   button.danger:hover:not(:disabled) { background: var(--error-bg); box-shadow: none; transform: none; }
   button.is-loading { color: transparent !important; pointer-events: none; }
   button.is-loading::after {
@@ -147,7 +226,7 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .row-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #fff; }
+  .row-list { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card); }
   .row-item {
     display: flex;
     align-items: center;
@@ -171,9 +250,26 @@
     white-space: nowrap;
   }
   .role-badge.admin { background: var(--accent-soft); color: var(--accent-dark); }
-  .role-badge.user { background: #f2f2f5; color: var(--faint); }
+  .role-badge.user { background: var(--surface-2); color: var(--faint); }
 
   .empty-state { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+  .stat-tile { text-align: center; padding: 0.9rem 0.5rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+  .stat-num { font-size: 1.5rem; font-weight: 700; font-family: ui-monospace, "SF Mono", monospace; }
+  .stat-label { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+  .analytics-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem; }
+  .analytics-heading { font-size: 0.82rem; font-weight: 700; margin: 0 0 0.7rem; }
+  .muted-note { font-weight: 400; color: var(--faint); }
+  .bar-row { margin-bottom: 0.55rem; }
+  .bar-row-label { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 0.25rem; }
+  .bar-track { height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); border-radius: 999px; }
+
+  @media (max-width: 560px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .analytics-columns { grid-template-columns: 1fr; }
+  }
   .status {
     font-size: 0.85rem;
     margin-top: 0.9rem;
@@ -202,7 +298,7 @@
     display: flex;
     align-items: flex-start;
     gap: 0.6rem;
-    background: #fff;
+    background: var(--card);
     border-radius: 12px;
     padding: 0.8rem 0.95rem;
     box-shadow: var(--shadow-card);
@@ -235,6 +331,10 @@
     <h1>Booking API <span class="admin-badge">Admin</span></h1>
   </a>
   <nav>
+    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+      <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+    </button>
     <a href="/ui/">Back to app</a>
   </nav>
 </header>
@@ -246,14 +346,47 @@
 
   <div id="adminContent" class="hidden">
     <section class="card">
+      <p class="card-title">Usage</p>
+      <div class="stat-grid">
+        <div class="stat-tile"><div class="stat-num" id="statTotalBookings">–</div><div class="stat-label">Total bookings</div></div>
+        <div class="stat-tile"><div class="stat-num" id="statUpcoming">–</div><div class="stat-label">Upcoming</div></div>
+        <div class="stat-tile"><div class="stat-num" id="statUsers">–</div><div class="stat-label">Users</div></div>
+        <div class="stat-tile"><div class="stat-num" id="statRooms">–</div><div class="stat-label">Rooms</div></div>
+      </div>
+      <div class="analytics-columns">
+        <div>
+          <p class="analytics-heading">Busiest rooms</p>
+          <div id="busiestRooms" class="bar-list"></div>
+        </div>
+        <div>
+          <p class="analytics-heading">Busiest hours <span class="muted-note">(UTC)</span></p>
+          <div id="busiestHours" class="bar-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
       <p class="card-title">Rooms</p>
       <p class="card-sub">Resources bookable in the app. Rooms with existing bookings can't be deleted.</p>
 
-      <div class="row" style="display:flex; gap:0.6rem; margin-bottom:0.5rem;">
-        <input id="newResourceName" placeholder="Room name, e.g. Meeting Room B" style="flex:1; margin-bottom:0;" />
+      <div style="display:flex; gap:0.6rem; margin-bottom:0.5rem;">
+        <input id="newResourceName" placeholder="Room name, e.g. Meeting Room B" style="flex:2; margin-bottom:0;" />
+        <input id="newResourceCapacity" type="number" min="1" placeholder="Capacity" style="flex:1; margin-bottom:0;" />
+      </div>
+      <div style="display:flex; gap:0.6rem; margin-bottom:0.5rem;">
+        <input id="newResourceAmenities" placeholder="Amenities, comma-separated: Projector, Whiteboard" style="flex:1; margin-bottom:0;" />
         <button id="addResourceBtn" style="flex-shrink:0;">Add room</button>
       </div>
       <div id="resourceStatus" class="status"></div>
+
+      <div style="display:flex; align-items:center; gap:0.6rem; margin-top:1.1rem; padding-top:1.1rem; border-top:1px solid var(--border);">
+        <label for="csvFileInput" class="secondary" style="display:inline-flex; align-items:center; padding:0.6rem 1rem; border-radius:10px; border:1.5px solid var(--border); cursor:pointer; font-size:0.85rem; font-weight:600;">
+          Import CSV
+        </label>
+        <input id="csvFileInput" type="file" accept=".csv,text/csv" class="hidden" />
+        <a id="csvTemplateLink" href="#" style="font-size:0.8rem; color: var(--accent-dark); font-weight:600;">Download template</a>
+      </div>
+      <div id="csvStatus" class="status"></div>
 
       <div id="resourceList" class="row-list" style="margin-top:1rem;"></div>
     </section>
@@ -273,6 +406,20 @@
 const TOKEN_KEY = "booking_api_token";
 
 function token() { return localStorage.getItem(TOKEN_KEY); }
+
+const THEME_KEY = "booking_api_theme";
+
+function currentTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === "light" || saved === "dark") return saved;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+document.getElementById("themeToggleBtn").onclick = () => {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  localStorage.setItem(THEME_KEY, next);
+  document.documentElement.setAttribute("data-theme", next);
+};
 
 function showToast(message, kind = "ok", timeout = 4000) {
   const container = document.getElementById("toasts");
@@ -329,10 +476,14 @@ function buildResourceRow(r) {
   title.className = "row-title";
   title.textContent = r.name;
   main.appendChild(title);
-  if (r.description) {
+  const subParts = [];
+  if (r.capacity) subParts.push(`Seats ${r.capacity}`);
+  if (r.amenities && r.amenities.length) subParts.push(r.amenities.join(", "));
+  if (r.description) subParts.push(r.description);
+  if (subParts.length) {
     const sub = document.createElement("div");
     sub.className = "row-sub";
-    sub.textContent = r.description;
+    sub.textContent = subParts.join(" · ");
     main.appendChild(sub);
   }
 
@@ -367,30 +518,129 @@ async function loadResources() {
   for (const r of resources) list.appendChild(buildResourceRow(r));
 }
 
+async function createResource(name, capacity, amenities) {
+  return api("/resources", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, capacity: capacity || null, amenities: amenities || [] }),
+  });
+}
+
 document.getElementById("addResourceBtn").onclick = async () => {
   const btn = document.getElementById("addResourceBtn");
-  const input = document.getElementById("newResourceName");
+  const nameInput = document.getElementById("newResourceName");
+  const capacityInput = document.getElementById("newResourceCapacity");
+  const amenitiesInput = document.getElementById("newResourceAmenities");
   const statusEl = document.getElementById("resourceStatus");
-  const name = input.value.trim();
+  const name = nameInput.value.trim();
   if (!name) {
     setStatus(statusEl, "Enter a room name first.", "error");
     return;
   }
+  const capacity = capacityInput.value ? Number(capacityInput.value) : null;
+  const amenities = amenitiesInput.value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   await withLoading(btn, async () => {
     try {
-      await api("/resources", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      input.value = "";
+      await createResource(name, capacity, amenities);
+      nameInput.value = "";
+      capacityInput.value = "";
+      amenitiesInput.value = "";
       setStatus(statusEl, "", "");
       showToast(`Added "${name}".`, "ok");
       await loadResources();
+      await loadAnalytics();
     } catch (e) {
       setStatus(statusEl, e.message, "error");
     }
   });
+};
+
+const CSV_TEMPLATE = "name,capacity,amenities\nMeeting Room B,8,Projector;Whiteboard\nStudy Room 1,4,\n";
+document.getElementById("csvTemplateLink").onclick = (e) => {
+  e.preventDefault();
+  const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "rooms-template.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+// Deliberately simple, matching the documented template: one row per line,
+// exactly 3 comma-separated fields (name, capacity, amenities), amenities
+// separated by semicolons since commas are already the field delimiter.
+// No quoted-field/escaping support — good enough for a room list, and the
+// per-row error reporting below means a malformed line just fails loudly
+// with its row number rather than silently corrupting data.
+function parseRoomsCsv(text) {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length && /^name\s*,\s*capacity\s*,\s*amenities$/i.test(lines[0])) {
+    lines.shift();
+  }
+  return lines.map((line, i) => {
+    const parts = line.split(",");
+    if (parts.length !== 3) {
+      throw new Error(`Row ${i + 1}: expected 3 columns (name,capacity,amenities), got ${parts.length}`);
+    }
+    const [name, capacityStr, amenitiesStr] = parts.map((p) => p.trim());
+    if (!name) throw new Error(`Row ${i + 1}: room name is required`);
+    const capacity = capacityStr ? Number(capacityStr) : null;
+    if (capacityStr && (!Number.isFinite(capacity) || capacity <= 0)) {
+      throw new Error(`Row ${i + 1}: capacity must be a positive number`);
+    }
+    const amenities = amenitiesStr ? amenitiesStr.split(";").map((s) => s.trim()).filter(Boolean) : [];
+    return { name, capacity, amenities };
+  });
+}
+
+document.getElementById("csvFileInput").onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const statusEl = document.getElementById("csvStatus");
+
+  let rows;
+  try {
+    const text = await file.text();
+    rows = parseRoomsCsv(text);
+  } catch (err) {
+    setStatus(statusEl, err.message, "error");
+    return;
+  }
+  if (rows.length === 0) {
+    setStatus(statusEl, "That CSV had no rooms in it.", "error");
+    return;
+  }
+
+  let succeeded = 0;
+  const failures = [];
+  for (const row of rows) {
+    try {
+      await createResource(row.name, row.capacity, row.amenities);
+      succeeded++;
+    } catch (err) {
+      failures.push(`${row.name}: ${err.message}`);
+    }
+  }
+
+  await loadResources();
+  await loadAnalytics();
+  if (failures.length === 0) {
+    setStatus(statusEl, `Imported ${succeeded} room${succeeded === 1 ? "" : "s"}.`, "ok");
+  } else {
+    setStatus(
+      statusEl,
+      `Imported ${succeeded} of ${rows.length}. Failed: ${failures.join("; ")}`,
+      "error"
+    );
+  }
 };
 
 async function deleteResource(resource, btn) {
@@ -400,6 +650,7 @@ async function deleteResource(resource, btn) {
       await api(`/resources/${resource.id}`, { method: "DELETE" });
       showToast(`Deleted "${resource.name}".`, "ok");
       await loadResources();
+      await loadAnalytics();
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -473,6 +724,67 @@ async function toggleUserRole(user, btn) {
   });
 }
 
+function renderBarList(containerId, items, emptyText) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = "";
+  if (items.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = emptyText;
+    el.appendChild(empty);
+    return;
+  }
+  const max = Math.max(...items.map((i) => i.value));
+  for (const item of items.slice(0, 6)) {
+    const row = document.createElement("div");
+    row.className = "bar-row";
+
+    const labelRow = document.createElement("div");
+    labelRow.className = "bar-row-label";
+    const labelSpan = document.createElement("span");
+    labelSpan.textContent = item.label;
+    const valueB = document.createElement("b");
+    valueB.textContent = item.value;
+    labelRow.appendChild(labelSpan);
+    labelRow.appendChild(valueB);
+
+    const track = document.createElement("div");
+    track.className = "bar-track";
+    const fill = document.createElement("div");
+    fill.className = "bar-fill";
+    fill.style.width = `${(item.value / max) * 100}%`;
+    track.appendChild(fill);
+
+    row.appendChild(labelRow);
+    row.appendChild(track);
+    el.appendChild(row);
+  }
+}
+
+async function loadAnalytics() {
+  let data;
+  try {
+    data = await api("/admin/analytics");
+  } catch (e) {
+    return;
+  }
+  document.getElementById("statTotalBookings").textContent = data.total_bookings;
+  document.getElementById("statUpcoming").textContent = data.upcoming_bookings;
+  document.getElementById("statUsers").textContent = data.total_users;
+  document.getElementById("statRooms").textContent = data.total_rooms;
+
+  renderBarList(
+    "busiestRooms",
+    data.busiest_rooms.map((r) => ({ label: r.resource_name, value: r.bookings })),
+    "No bookings yet."
+  );
+  renderBarList(
+    "busiestHours",
+    data.busiest_hours.map((h) => ({ label: `${String(h.hour).padStart(2, "0")}:00`, value: h.bookings })),
+    "No bookings yet."
+  );
+}
+
 (async function boot() {
   if (!token()) {
     window.location.href = "/ui/";
@@ -493,6 +805,7 @@ async function toggleUserRole(user, btn) {
   document.getElementById("adminContent").classList.remove("hidden");
   await loadResources();
   await loadUsers();
+  await loadAnalytics();
 })();
 </script>
 

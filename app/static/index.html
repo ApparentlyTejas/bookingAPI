@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Booking API: Calendar</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='20' height='20' rx='5' fill='%234f46e5'/%3E%3Cpath d='M8 6v3M16 6v3M4 10h16M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E" />
+<link rel="manifest" href="/ui/manifest.json" />
+<meta name="theme-color" content="#17160f" />
+<script>
+  (function () {
+    var saved = localStorage.getItem("booking_api_theme");
+    if (saved === "light" || saved === "dark") {
+      document.documentElement.setAttribute("data-theme", saved);
+    }
+  })();
+</script>
 <style>
   :root {
     --bg: #faf8f4;
@@ -29,8 +39,71 @@
     --ok-bg: #eefaf1;
     --ok-border: #a3e4bc;
     --ok: #0f7a4e;
+    --surface-2: #f7f4ee;
+    --skel-1: #f1f2f7;
+    --skel-2: #f8f9fc;
     --shadow-card: 0 1px 2px rgba(23, 22, 15, 0.05), 0 16px 32px -14px rgba(23, 22, 15, 0.18);
     --shadow-btn: 0 1px 2px rgba(23, 22, 15, 0.15), 0 6px 14px -4px rgba(23, 22, 15, 0.28);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #100f0c;
+      --card: #1b1916;
+      --border: #38332a;
+      --text: #f2ede2;
+      --muted: #a9a08c;
+      --faint: #756e5c;
+      --ink: #24221a;
+      --ink-2: #34301f;
+      --accent: #e0902f;
+      --accent-dark: #c2760f;
+      --accent-soft: rgba(224, 144, 47, 0.16);
+      --free: rgba(52, 211, 153, 0.14);
+      --free-border: #34d399;
+      --free-text: #4ade80;
+      --booked: rgba(229, 162, 154, 0.14);
+      --booked-border: #e5a29a;
+      --error-bg: rgba(229, 162, 154, 0.14);
+      --error-border: #e5a29a;
+      --error: #f37268;
+      --ok-bg: rgba(163, 228, 188, 0.14);
+      --ok-border: #a3e4bc;
+      --ok: #4ade80;
+      --surface-2: #232019;
+      --skel-1: #201d18;
+      --skel-2: #2a2620;
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 32px -14px rgba(0, 0, 0, 0.6);
+      --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 14px -4px rgba(0, 0, 0, 0.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #100f0c;
+    --card: #1b1916;
+    --border: #38332a;
+    --text: #f2ede2;
+    --muted: #a9a08c;
+    --faint: #756e5c;
+    --ink: #24221a;
+    --ink-2: #34301f;
+    --accent: #e0902f;
+    --accent-dark: #c2760f;
+    --accent-soft: rgba(224, 144, 47, 0.16);
+    --free: rgba(52, 211, 153, 0.14);
+    --free-border: #34d399;
+    --free-text: #4ade80;
+    --booked: rgba(229, 162, 154, 0.14);
+    --booked-border: #e5a29a;
+    --error-bg: rgba(229, 162, 154, 0.14);
+    --error-border: #e5a29a;
+    --error: #f37268;
+    --ok-bg: rgba(163, 228, 188, 0.14);
+    --ok-border: #a3e4bc;
+    --ok: #4ade80;
+    --surface-2: #232019;
+    --skel-1: #201d18;
+    --skel-2: #2a2620;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 32px -14px rgba(0, 0, 0, 0.6);
+    --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 14px -4px rgba(0, 0, 0, 0.6);
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -76,6 +149,29 @@
   header .who-email { color: rgba(255, 255, 255, 0.65); }
   header a.linklike { color: #fbbf6b; }
 
+  .header-right { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+  .theme-toggle-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.85);
+    box-shadow: none;
+    border-radius: 9px;
+  }
+  .theme-toggle-btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); transform: none; box-shadow: none; }
+  .theme-toggle-btn .icon-moon { display: none; }
+  :root[data-theme="dark"] .theme-toggle-btn .icon-sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle-btn .icon-moon { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle-btn .icon-sun { display: none; }
+    :root:not([data-theme="light"]) .theme-toggle-btn .icon-moon { display: block; }
+  }
   .who { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
   .avatar {
     width: 26px;
@@ -144,7 +240,7 @@
     border-radius: 10px;
     font-size: 0.95rem;
     margin-bottom: 0.9rem;
-    background: #fff;
+    background: var(--card);
     color: var(--text);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
     font-family: inherit;
@@ -175,8 +271,8 @@
   button:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
   button.block { width: 100%; }
   button.secondary {
-    background: #fff;
-    color: var(--ink);
+    background: var(--card);
+    color: var(--text);
     border: 1.5px solid var(--border);
     box-shadow: none;
   }
@@ -196,7 +292,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .icon-btn {
-    background: #fff;
+    background: var(--card);
     color: var(--muted);
     border: 1.5px solid var(--border);
     box-shadow: none;
@@ -384,7 +480,7 @@
     font-size: 0.78rem;
     font-weight: 600;
     color: var(--muted);
-    background: #f7f4ee;
+    background: var(--surface-2);
     border: 1px solid var(--border);
     padding: 0.35rem 0.7rem;
     border-radius: 999px;
@@ -485,7 +581,7 @@
     padding-right: 2px;
   }
   .time-pill {
-    background: #fff;
+    background: var(--card);
     border: 1.5px solid var(--border);
     color: var(--text);
     box-shadow: none;
@@ -514,13 +610,35 @@
     padding-top: 0.9rem;
     border-top: 1px solid var(--border);
   }
+  .recurring-option { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; }
+  .recurring-option .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+    cursor: pointer;
+  }
+  .recurring-option input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+  }
+  .recurring-option select {
+    width: auto;
+    margin: 0;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.82rem;
+  }
 
   .tl-skeleton { padding: 0.2rem 0; }
   .tl-skeleton-row {
     height: 40px;
     margin: 6px 0;
     border-radius: 8px;
-    background: linear-gradient(90deg, #f1f2f7 25%, #f8f9fc 37%, #f1f2f7 63%);
+    background: linear-gradient(90deg, var(--skel-1) 25%, var(--skel-2) 37%, var(--skel-1) 63%);
     background-size: 400% 100%;
     animation: shimmer 1.4s ease infinite;
   }
@@ -538,7 +656,7 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
-    background: #fff;
+    background: var(--card);
   }
   .mb-row {
     display: flex;
@@ -567,7 +685,7 @@
     flex-shrink: 0;
   }
   .mb-badge.upcoming { background: var(--accent-soft); color: var(--accent-dark); }
-  .mb-badge.past { background: #f2f2f5; color: var(--faint); }
+  .mb-badge.past { background: var(--surface-2); color: var(--faint); }
   .mb-right { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
   .mb-actions { display: flex; gap: 0.35rem; }
   .mb-action-btn {
@@ -578,7 +696,7 @@
     justify-content: center;
     padding: 0;
     border-radius: 7px;
-    background: #fff;
+    background: var(--card);
     border: 1.5px solid var(--border);
     color: var(--muted);
     box-shadow: none;
@@ -596,6 +714,27 @@
     background: var(--error-bg);
   }
 
+  .mb-row.mb-editing { flex-wrap: wrap; }
+  .mb-edit-form { display: flex; gap: 0.5rem; align-items: center; width: 100%; flex-wrap: wrap; }
+  .mb-edit-form input[type="date"] {
+    width: auto;
+    flex: 1 1 150px;
+    margin-bottom: 0;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.85rem;
+  }
+  .mb-edit-form select {
+    flex: 1 1 110px;
+    padding: 0.45rem 0.6rem;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    background: var(--card);
+    color: var(--text);
+  }
+  .mb-edit-form button { flex-shrink: 0; padding: 0.45rem 0.85rem; font-size: 0.82rem; }
+
   /* ---- Toasts ---- */
   .toasts {
     position: fixed;
@@ -611,7 +750,7 @@
     display: flex;
     align-items: flex-start;
     gap: 0.6rem;
-    background: #fff;
+    background: var(--card);
     border-radius: 12px;
     padding: 0.8rem 0.95rem;
     box-shadow: var(--shadow-card);
@@ -650,11 +789,17 @@
     </span>
     <h1>Booking API</h1>
   </div>
-  <div id="who" class="who hidden">
-    <span id="avatar" class="avatar"></span>
-    <span id="whoEmail" class="who-email"></span>
-    <a class="linklike hidden" id="adminLink" href="/ui/admin.html">Admin</a>
-    <a class="linklike" id="logoutLink">Log out</a>
+  <div class="header-right">
+    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+      <svg class="icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <svg class="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+    </button>
+    <div id="who" class="who hidden">
+      <span id="avatar" class="avatar"></span>
+      <span id="whoEmail" class="who-email"></span>
+      <a class="linklike hidden" id="adminLink" href="/ui/admin.html">Admin</a>
+      <a class="linklike" id="logoutLink">Log out</a>
+    </div>
   </div>
 </header>
 
@@ -727,6 +872,14 @@
         <label for="resourceSelect">Resource</label>
         <select id="resourceSelect"></select>
         <div class="resource-meta">
+          <div id="capacityRow" class="meta-row hidden">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span id="capacityText"></span>
+          </div>
+          <div id="amenitiesRow" class="meta-row hidden">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <span id="amenitiesText"></span>
+          </div>
           <div class="meta-row">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
             1 hour
@@ -765,6 +918,13 @@
         <p class="times-heading" id="timesHeading">Select a date</p>
         <div id="timesList" class="times-list"></div>
         <div class="confirm-bar">
+          <div id="recurringOption" class="recurring-option hidden">
+            <label class="checkbox-label" for="recurringCheckbox">
+              <input type="checkbox" id="recurringCheckbox" />
+              Repeat weekly
+            </label>
+            <select id="recurringWeeksSelect" class="hidden"></select>
+          </div>
           <button id="confirmBtn" class="block hidden">Confirm <span id="confirmLabel"></span></button>
           <button id="resendBtn" class="secondary block hidden" style="margin-top:0.6rem">Resend last booking (test idempotency key)</button>
         </div>
@@ -790,6 +950,26 @@ const END_HOUR = 20;
 let lastBookingPayload = null;
 
 function token() { return localStorage.getItem(TOKEN_KEY); }
+
+const THEME_KEY = "booking_api_theme";
+
+function currentTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === "light" || saved === "dark") return saved;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+document.getElementById("themeToggleBtn").onclick = () => {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  localStorage.setItem(THEME_KEY, next);
+  document.documentElement.setAttribute("data-theme", next);
+};
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/ui/sw.js").catch(() => {});
+  });
+}
 
 function setStatus(el, message, kind) {
   el.textContent = message || "";
@@ -941,11 +1121,13 @@ function todayUTCString() {
 let calendarCursor = new Date();
 let selectedDateStr = null;
 let selectedHour = null;
+let resourcesById = {};
 
 async function loadResources() {
   const select = document.getElementById("resourceSelect");
   select.innerHTML = "";
   const resources = await api("/resources");
+  resourcesById = Object.fromEntries(resources.map((r) => [r.id, r]));
   if (resources.length === 0) {
     select.innerHTML = "<option disabled>No resources yet</option>";
     return;
@@ -956,8 +1138,29 @@ async function loadResources() {
     opt.textContent = r.name;
     select.appendChild(opt);
   }
+  updateResourceMeta();
 }
+
+function updateResourceMeta() {
+  const resource = resourcesById[document.getElementById("resourceSelect").value];
+  const capacityRow = document.getElementById("capacityRow");
+  const amenitiesRow = document.getElementById("amenitiesRow");
+  if (resource && resource.capacity) {
+    document.getElementById("capacityText").textContent = `Seats ${resource.capacity}`;
+    capacityRow.classList.remove("hidden");
+  } else {
+    capacityRow.classList.add("hidden");
+  }
+  if (resource && resource.amenities && resource.amenities.length) {
+    document.getElementById("amenitiesText").textContent = resource.amenities.join(", ");
+    amenitiesRow.classList.remove("hidden");
+  } else {
+    amenitiesRow.classList.add("hidden");
+  }
+}
+
 document.getElementById("resourceSelect").onchange = () => {
+  updateResourceMeta();
   if (selectedDateStr) selectDate(selectedDateStr);
 };
 
@@ -1090,6 +1293,9 @@ async function selectDate(dateStr) {
   selectedHour = null;
   document.getElementById("resendBtn").classList.add("hidden");
   document.getElementById("confirmBtn").classList.add("hidden");
+  document.getElementById("recurringOption").classList.add("hidden");
+  document.getElementById("recurringCheckbox").checked = false;
+  document.getElementById("recurringWeeksSelect").classList.add("hidden");
   renderMonthCalendar();
   await loadTimesForDate(dateStr);
 }
@@ -1172,12 +1378,36 @@ function selectTime(hour, btn) {
   const { start, end } = slotRange(selectedDateStr, hour);
   document.getElementById("confirmLabel").textContent = `${formatClockTime(start)}–${formatClockTime(end)}`;
   document.getElementById("confirmBtn").classList.remove("hidden");
+  document.getElementById("recurringOption").classList.remove("hidden");
 }
+
+const RECURRING_WEEK_PRESETS = [2, 3, 4, 6, 8, 12, 26, 52];
+
+(function populateRecurringWeeksSelect() {
+  const select = document.getElementById("recurringWeeksSelect");
+  for (const n of RECURRING_WEEK_PRESETS) {
+    const opt = document.createElement("option");
+    opt.value = n;
+    opt.textContent = `for ${n} weeks`;
+    if (n === 4) opt.selected = true;
+    select.appendChild(opt);
+  }
+})();
+
+document.getElementById("recurringCheckbox").onchange = (e) => {
+  document.getElementById("recurringWeeksSelect").classList.toggle("hidden", !e.target.checked);
+};
 
 document.getElementById("confirmBtn").onclick = async () => {
   if (selectedHour == null || !selectedDateStr) return;
   const resourceId = document.getElementById("resourceSelect").value;
-  await bookSlot(resourceId, selectedDateStr, selectedHour, document.getElementById("confirmBtn"));
+  const btn = document.getElementById("confirmBtn");
+  if (document.getElementById("recurringCheckbox").checked) {
+    const occurrences = Number(document.getElementById("recurringWeeksSelect").value);
+    await bookSlotRecurring(resourceId, selectedDateStr, selectedHour, occurrences, btn);
+  } else {
+    await bookSlot(resourceId, selectedDateStr, selectedHour, btn);
+  }
 };
 
 function renderSummary(counts) {
@@ -1226,6 +1456,35 @@ async function bookSlot(resourceId, dateStr, hour, btn) {
   });
 }
 
+async function bookSlotRecurring(resourceId, dateStr, hour, occurrences, btn) {
+  const { start, end } = slotRange(dateStr, hour);
+  const payload = { resource_id: Number(resourceId), start_time: start, end_time: end, occurrences };
+  await withLoading(btn, async () => {
+    try {
+      const result = await api("/bookings/recurring", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const n = result.created.length;
+      const skipped = result.skipped.length;
+      const message =
+        skipped === 0
+          ? `Booked ${formatClockTime(start)} weekly for ${n} week${n === 1 ? "" : "s"}.`
+          : `Booked ${n} of ${n + skipped} weeks (${skipped} week${skipped === 1 ? "" : "s"} already taken).`;
+      showToast(message, skipped === 0 ? "ok" : "error", 6000);
+      selectedHour = null;
+      document.getElementById("confirmBtn").classList.add("hidden");
+      document.getElementById("recurringOption").classList.add("hidden");
+      await loadTimesForDate(dateStr);
+      await loadMyBookings();
+    } catch (e) {
+      showToast(e.message, "error");
+      await loadTimesForDate(dateStr);
+    }
+  });
+}
+
 document.getElementById("resendBtn").onclick = async () => {
   const btn = document.getElementById("resendBtn");
   if (!lastBookingPayload) return;
@@ -1266,7 +1525,7 @@ function buildBookingRow(b, isPast) {
 
   const timeEl = document.createElement("div");
   timeEl.className = "mb-time";
-  timeEl.textContent = `${dateLabel} · ${timeLabel}`;
+  timeEl.textContent = b.series_id ? `${dateLabel} · ${timeLabel} · Weekly series` : `${dateLabel} · ${timeLabel}`;
 
   info.appendChild(resourceEl);
   info.appendChild(timeEl);
@@ -1301,17 +1560,38 @@ function buildBookingRow(b, isPast) {
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 19h16"/></svg>';
     icsBtn.onclick = () => downloadIcs(b.id, b.resource_name, b.start_time, b.end_time);
 
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "mb-action-btn";
+    editBtn.title = "Change the time";
+    editBtn.setAttribute("aria-label", "Change the time");
+    editBtn.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    editBtn.onclick = () => startEditingBooking(b, row);
+
     const cancelBtn = document.createElement("button");
     cancelBtn.type = "button";
     cancelBtn.className = "mb-action-btn mb-cancel-btn";
-    cancelBtn.title = "Cancel this booking";
-    cancelBtn.setAttribute("aria-label", "Cancel this booking");
+    cancelBtn.title = b.series_id ? "Cancel just this occurrence" : "Cancel this booking";
+    cancelBtn.setAttribute("aria-label", cancelBtn.title);
     cancelBtn.innerHTML =
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
     cancelBtn.onclick = () => cancelBooking(b, cancelBtn);
 
     actions.appendChild(gcalLink);
     actions.appendChild(icsBtn);
+    actions.appendChild(editBtn);
+    if (b.series_id) {
+      const cancelSeriesBtn = document.createElement("button");
+      cancelSeriesBtn.type = "button";
+      cancelSeriesBtn.className = "mb-action-btn mb-cancel-btn";
+      cancelSeriesBtn.title = "Cancel this and all future occurrences in the series";
+      cancelSeriesBtn.setAttribute("aria-label", cancelSeriesBtn.title);
+      cancelSeriesBtn.innerHTML =
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1 21 5 17 9M3 11V9a4 4 0 0 1 4-4h14M7 23 3 19l4-4M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
+      cancelSeriesBtn.onclick = () => cancelBookingSeries(b, cancelSeriesBtn);
+      actions.appendChild(cancelSeriesBtn);
+    }
     actions.appendChild(cancelBtn);
     right.appendChild(actions);
   }
@@ -1320,6 +1600,77 @@ function buildBookingRow(b, isPast) {
   row.appendChild(info);
   row.appendChild(right);
   return row;
+}
+
+function buildHourOptions(dateStr, selectEl, selectedHour) {
+  selectEl.innerHTML = "";
+  for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+    const { start } = slotRange(dateStr, hour);
+    const opt = document.createElement("option");
+    opt.value = hour;
+    opt.textContent = formatClockTime(start);
+    if (hour === selectedHour) opt.selected = true;
+    selectEl.appendChild(opt);
+  }
+}
+
+function startEditingBooking(b, row) {
+  const dateStr = b.start_time.slice(0, 10);
+  const originalHour = new Date(b.start_time).getUTCHours();
+
+  row.innerHTML = "";
+  row.classList.add("mb-editing");
+
+  const form = document.createElement("div");
+  form.className = "mb-edit-form";
+
+  const dateInput = document.createElement("input");
+  dateInput.type = "date";
+  dateInput.value = dateStr;
+  dateInput.min = todayUTCString();
+
+  const hourSelect = document.createElement("select");
+  buildHourOptions(dateStr, hourSelect, originalHour);
+
+  dateInput.onchange = () => buildHourOptions(dateInput.value, hourSelect);
+
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.textContent = "Save";
+  saveBtn.onclick = () => saveBookingEdit(b, dateInput.value, Number(hourSelect.value), saveBtn);
+
+  const cancelEditBtn = document.createElement("button");
+  cancelEditBtn.type = "button";
+  cancelEditBtn.className = "secondary";
+  cancelEditBtn.textContent = "Cancel";
+  cancelEditBtn.onclick = () => loadMyBookings();
+
+  form.appendChild(dateInput);
+  form.appendChild(hourSelect);
+  form.appendChild(saveBtn);
+  form.appendChild(cancelEditBtn);
+  row.appendChild(form);
+}
+
+async function saveBookingEdit(b, dateStr, hour, btn) {
+  const { start, end } = slotRange(dateStr, hour);
+  await withLoading(btn, async () => {
+    try {
+      await api(`/bookings/${b.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start_time: start, end_time: end }),
+      });
+      showToast("Booking updated.", "ok");
+      await loadMyBookings();
+      const oldDateStr = b.start_time.slice(0, 10);
+      if (selectedDateStr === dateStr || selectedDateStr === oldDateStr) {
+        await loadTimesForDate(selectedDateStr);
+      }
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  });
 }
 
 async function cancelBooking(b, btn) {
@@ -1342,6 +1693,24 @@ async function cancelBooking(b, btn) {
       if (selectedDateStr === b.start_time.slice(0, 10)) {
         await loadTimesForDate(selectedDateStr);
       }
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  });
+}
+
+async function cancelBookingSeries(b, btn) {
+  const confirmed = window.confirm(
+    `Cancel the entire weekly series for ${b.resource_name}? This cancels this and all future occurrences.`
+  );
+  if (!confirmed) return;
+
+  await withLoading(btn, async () => {
+    try {
+      await api(`/bookings/series/${b.series_id}`, { method: "DELETE" });
+      showToast("Series cancelled.", "ok");
+      await loadMyBookings();
+      if (selectedDateStr) await loadTimesForDate(selectedDateStr);
     } catch (e) {
       showToast(e.message, "error");
     }
