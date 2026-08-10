@@ -1,0 +1,6 @@
+# These are static frontend pages (inline CSS/JS, no build step) served
+# by the FastAPI backend, not the point of the project — without this,
+# GitHub's language stats show mostly "HTML" because of inline CSS/JS
+# bulk, which misrepresents this as a frontend project instead of the
+# Python/Postgres concurrency-handling backend it actually is.
+app/static/*.html linguist-vendored
